@@ -121,9 +121,12 @@ REST_FRAMEWORK = {
 }
 
 # Celery Configuration
-# For local dev without Redis, we can run tasks synchronously
-CELERY_TASK_ALWAYS_EAGER = True
+# Redis is used as the message broker and result backend
 CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_TASK_ALWAYS_EAGER = False  # Set to True ONLY for unit testing without Redis
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

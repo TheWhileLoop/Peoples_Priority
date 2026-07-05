@@ -34,17 +34,17 @@ export default function AdminDashboard() {
     fetchClusters();
   }, []);
 
-  // Filter based on Admin's assigned state (default to Maharashtra)
-  const adminState = user?.profile?.state || 'Maharashtra';
+  // Filter based on Admin's assigned state
+  // If no state is set in profile, show ALL clusters (demo mode)
+  const adminState = user?.profile?.state || null;
   
-  // Filter clusters matching the admin's state
-  const stateClusters = clusters.filter(
-    c => !c.state || c.state.toLowerCase() === adminState.toLowerCase()
-  );
+  // Show all clusters when no state is configured (demo mode), else filter by state
+  const stateClusters = adminState
+    ? clusters.filter(c => !c.state || c.state.toLowerCase() === adminState.toLowerCase())
+    : clusters;
 
-  const stateComplaints = complaints.filter(
-    c => stateClusters.some(cluster => cluster.id === c.cluster || cluster.complaints?.some(x => x.id === c.id))
-  );
+  // All complaints (admin sees all)
+  const stateComplaints = complaints;
 
   // Statistics calculation
   const totalIssuesCount = stateComplaints.length;

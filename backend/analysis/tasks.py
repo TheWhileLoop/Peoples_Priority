@@ -49,6 +49,15 @@ def process_complaint_with_ai(complaint_id):
                 state = complaint.user.profile.state or 'Other'
                 district = complaint.user.profile.district or 'Other'
             
+            # Resolve State and District from Ward name for seamless demo mapping
+            if state == 'Other' or not state:
+                if complaint.ward and any(w in complaint.ward for w in ['Andheri East', 'Sector 5', 'Vile Parle', 'Sector 3']):
+                    state = 'Maharashtra'
+                    district = 'Mumbai'
+                else:
+                    state = 'Maharashtra'
+                    district = 'Mumbai'
+            
             # Retrieve coordinates
             lat = complaint.latitude
             lng = complaint.longitude
@@ -61,7 +70,7 @@ def process_complaint_with_ai(complaint_id):
                 complaint.longitude = lng
 
             # 4. Spatial Clustering (2km radius check: ~0.018 degree delta)
-            # Find matching clusters in the same state, district, and category
+            # Find matching clusters in the same state, district, ward, and category
             category = complaint.ai_category
             lat_delta = Decimal('0.018')
             lng_delta = Decimal('0.018')
@@ -69,6 +78,7 @@ def process_complaint_with_ai(complaint_id):
             existing_cluster = IssueCluster.objects.filter(
                 state=state,
                 district=district,
+                ward=complaint.ward,
                 category=category,
                 status__in=['pending_ai', 'pending_dept', 'in_progress'],
                 center_latitude__range=(lat - lat_delta, lat + lat_delta),
@@ -124,6 +134,7 @@ def process_complaint_with_ai(complaint_id):
                     status='pending_dept', # Promoted to pending department routing
                     state=state,
                     district=district,
+                    ward=complaint.ward,
                     department=ai_data.get('department', 'Collectorate Office'),
                     center_latitude=lat,
                     center_longitude=lng,

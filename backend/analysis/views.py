@@ -1,4 +1,4 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from .models import IssueCluster
@@ -7,9 +7,18 @@ from .serializers import IssueClusterSerializer
 class IssueClusterViewSet(viewsets.ModelViewSet):
     """
     Endpoint: GET /api/analyze/clusters/
+    Returns all IssueCluster objects ordered by highest severity score.
+    Supports PATCH for status and department updates.
     """
     queryset = IssueCluster.objects.all().order_by('-severity_score')
     serializer_class = IssueClusterSerializer
+
+    def get_serializer_context(self):
+        # Pass request into the nested serializer context
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
 
 
 @api_view(['POST'])
