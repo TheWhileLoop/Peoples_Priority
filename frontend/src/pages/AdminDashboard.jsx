@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useComplaintStore } from '../store/complaintStore';
 import { LayoutDashboard, AlertOctagon, Kanban, Newspaper, LogOut, CheckCircle2, AlertCircle, ThumbsUp, ArrowRight, User, Trash2, Mail, ExternalLink } from 'lucide-react';
+import { mpDistricts } from '../store/complaintStore';
 
 export default function AdminDashboard() {
   const { user, logout } = useAuthStore();
@@ -9,8 +10,8 @@ export default function AdminDashboard() {
   
   // Tab/Navigation state
   const [adminTab, setAdminTab] = useState('dashboard'); // 'dashboard' | 'clusters' | 'kanban' | 'weekly'
-  const [hoveredWard, setHoveredWard] = useState(null);
-  const [selectedWardFilter, setSelectedWardFilter] = useState('All');
+  const [hoveredDistrict, setHoveredDistrict] = useState(null);
+  const [selectedDistrictFilter, setSelectedDistrictFilter] = useState('All');
   const [expandedClusterId, setExpandedClusterId] = useState(null);
   
   // Simulated Weekly Alert states
@@ -27,28 +28,36 @@ export default function AdminDashboard() {
   const publicSentiment = highSeverityCount > 1 ? '🔴 Highly Frustrated' : highSeverityCount === 1 ? '🟡 Concerned' : '🟢 Satisfied';
 
   // SVG Heatmap Coordinates/Data
-  const wardsConfig = [
-    { id: 'w4', name: 'Ward 4 - Andheri East', pathName: 'Andheri East', x: 20, y: 20, w: 200, h: 100 },
-    { id: 'w12', name: 'Ward 12 - Sector 5', pathName: 'Sector 5', x: 240, y: 20, w: 200, h: 100 },
-    { id: 'w2', name: 'Ward 2 - Vile Parle', pathName: 'Vile Parle', x: 20, y: 140, w: 200, h: 100 },
-    { id: 'w8', name: 'Ward 8 - Sector 3', pathName: 'Sector 3', x: 240, y: 140, w: 200, h: 100 }
-  ];
+  const districtsConfig = mpDistricts.map((name, idx) => {
+    const cols = 9;
+    const col = idx % cols;
+    const row = Math.floor(idx / cols);
+    return {
+      id: `d${idx}`,
+      name: name,
+      pathName: name.length > 8 ? name.substring(0, 6) + '..' : name, 
+      x: 10 + col * 55, // 50 width + 5 gap
+      y: 10 + row * 40, // 30 height + 10 gap
+      w: 50,
+      h: 30
+    };
+  });
 
-  // Helper to determine ward color based on severity score (10% bg + 30% border for clean pastel style)
-  const getWardColorClass = (wardName) => {
-    const wardClusters = clusters.filter(c => c.ward === wardName && c.status !== 'Resolved');
-    if (wardClusters.length === 0) return 'fill-emerald-50 bg-emerald-50/10 stroke-emerald-500/40 hover:fill-emerald-100/50';
+  // Helper to determine district color based on severity score (10% bg + 30% border for clean pastel style)
+  const getDistrictColorClass = (districtName) => {
+    const districtClusters = clusters.filter(c => c.district === districtName && c.status !== 'Resolved');
+    if (districtClusters.length === 0) return 'fill-emerald-50 bg-emerald-50/10 stroke-emerald-500/40 hover:fill-emerald-100/50';
     
-    const maxSeverity = Math.max(...wardClusters.map(c => c.severity_score));
+    const maxSeverity = Math.max(...districtClusters.map(c => c.severity_score));
     if (maxSeverity >= 8.5) return 'fill-red-50 bg-red-50/10 stroke-red-500/40 hover:fill-red-100/50';
     if (maxSeverity >= 6.5) return 'fill-orange-55 bg-orange-50/10 stroke-orange-500/40 hover:fill-orange-100/50';
     return 'fill-amber-50 bg-amber-50/10 stroke-amber-500/40 hover:fill-amber-100/50';
   };
 
-  const getWardSeverity = (wardName) => {
-    const wardClusters = clusters.filter(c => c.ward === wardName && c.status !== 'Resolved');
-    if (wardClusters.length === 0) return '0.0 (Clear)';
-    const maxSeverity = Math.max(...wardClusters.map(c => c.severity_score));
+  const getDistrictSeverity = (districtName) => {
+    const districtClusters = clusters.filter(c => c.district === districtName && c.status !== 'Resolved');
+    if (districtClusters.length === 0) return '0.0 (Clear)';
+    const maxSeverity = Math.max(...districtClusters.map(c => c.severity_score));
     return `${maxSeverity.toFixed(1)}/10`;
   };
 
@@ -200,68 +209,68 @@ export default function AdminDashboard() {
                 <div className="flex justify-between items-center">
                   <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Constituency Severity Heatmap</h3>
                   <span className="text-[10px] bg-bg-elevated px-2.5 py-1 border border-border-1 rounded text-slate-600 font-semibold">
-                    📍 Mumbai Suburbs Division
+                    📍 Madhya Pradesh Division
                   </span>
                 </div>
                 
                 {/* SVG Rendered Map */}
                 <div className="relative">
-                  <svg viewBox="0 0 460 260" className="w-full h-auto max-h-72 border border-border-1 rounded-xl bg-slate-50/70 p-2 shadow-inner">
-                    {wardsConfig.map((wardItem) => {
-                      const isActive = hoveredWard === wardItem.name;
-                      const colorClass = getWardColorClass(wardItem.name);
+                  <svg viewBox="0 0 520 280" className="w-full h-auto max-h-72 border border-border-1 rounded-xl bg-slate-50/70 p-2 shadow-inner">
+                    {districtsConfig.map((districtItem) => {
+                      const isActive = hoveredDistrict === districtItem.name;
+                      const colorClass = getDistrictColorClass(districtItem.name);
                       
                       return (
                         <g 
-                          key={wardItem.id}
-                          onMouseEnter={() => setHoveredWard(wardItem.name)}
-                          onMouseLeave={() => setHoveredWard(null)}
+                          key={districtItem.id}
+                          onMouseEnter={() => setHoveredDistrict(districtItem.name)}
+                          onMouseLeave={() => setHoveredDistrict(null)}
                           onClick={() => {
-                            setSelectedWardFilter(wardItem.name);
+                            setSelectedDistrictFilter(districtItem.name);
                             setAdminTab('clusters');
                           }}
                           className="cursor-pointer transition-all duration-300 group"
                         >
                           <rect
-                            x={wardItem.x}
-                            y={wardItem.y}
-                            width={wardItem.w}
-                            height={wardItem.h}
+                            x={districtItem.x}
+                            y={districtItem.y}
+                            width={districtItem.w}
+                            height={districtItem.h}
                             rx={12}
                             className={`stroke-2 transition-all duration-300 ${colorClass}`}
                           />
                           <text
-                            x={wardItem.x + wardItem.w / 2}
-                            y={wardItem.y + wardItem.h / 2}
+                            x={districtItem.x + districtItem.w / 2}
+                            y={districtItem.y + districtItem.h / 2}
                             textAnchor="middle"
                             className="fill-slate-700 font-extrabold text-[11px] select-none group-hover:fill-slate-900"
                           >
-                            {wardItem.pathName}
+                            {districtItem.pathName}
                           </text>
                         </g>
                       );
                     })}
                   </svg>
 
-                  {/* Ward Map Tooltip Overlay */}
-                  {hoveredWard && (
+                  {/* District Map Tooltip Overlay */}
+                  {hoveredDistrict && (
                     <div className="absolute top-4 left-4 bg-white border border-border-2 p-4 rounded-xl shadow-xl w-60 z-10 animate-fade-in text-slate-700">
-                      <h4 className="text-xs font-bold text-slate-900">{hoveredWard}</h4>
+                      <h4 className="text-xs font-bold text-slate-900">{hoveredDistrict}</h4>
                       <div className="mt-2 space-y-1 text-[11px] text-slate-500">
                         <div className="flex justify-between">
                           <span>Max Severity:</span>
-                          <span className="font-bold text-red-650 text-red-600">{getWardSeverity(hoveredWard)}</span>
+                          <span className="font-bold text-red-650 text-red-600">{getDistrictSeverity(hoveredDistrict)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Active Clusters:</span>
                           <span className="font-bold text-slate-800">
-                            {clusters.filter(c => c.ward === hoveredWard && c.status !== 'Resolved').length}
+                            {clusters.filter(c => c.district === hoveredDistrict && c.status !== 'Resolved').length}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>Total Complaints:</span>
                           <span className="font-bold text-slate-800">
-                            {complaints.filter(c => c.ward === hoveredWard).length}
+                            {complaints.filter(c => c.district === hoveredDistrict).length}
                           </span>
                         </div>
                       </div>
@@ -334,17 +343,16 @@ export default function AdminDashboard() {
 
               {/* Ward filter selector */}
               <div className="flex items-center space-x-2">
-                <span className="text-xs font-semibold text-slate-500">Ward:</span>
+                <span className="text-xs font-semibold text-slate-500">District:</span>
                 <select
-                  value={selectedWardFilter}
-                  onChange={(e) => setSelectedWardFilter(e.target.value)}
+                  value={selectedDistrictFilter}
+                  onChange={(e) => setSelectedDistrictFilter(e.target.value)}
                   className="bg-bg-card border border-border-1 text-xs px-3 py-1.5 rounded-lg text-slate-700 focus:outline-none shadow-sm"
                 >
-                  <option value="All">All Wards</option>
-                  <option value="Ward 4 - Andheri East">Ward 4 - Andheri East</option>
-                  <option value="Ward 12 - Sector 5">Ward 12 - Sector 5</option>
-                  <option value="Ward 8 - Sector 3">Ward 8 - Sector 3</option>
-                  <option value="Ward 2 - Vile Parle">Ward 2 - Vile Parle</option>
+                  <option value="All">All Districts</option>
+                  {mpDistricts.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -352,7 +360,7 @@ export default function AdminDashboard() {
             {/* Filtered Clusters List */}
             <div className="space-y-4">
               {clusters
-                .filter((c) => selectedWardFilter === 'All' || c.ward === selectedWardFilter)
+                .filter((c) => selectedDistrictFilter === 'All' || c.district === selectedDistrictFilter)
                 .map((cluster, index) => {
                   const isExpanded = expandedClusterId === cluster.id;
                   const clusterComplaints = complaints.filter((comp) => cluster.complaint_ids.includes(comp.id));
@@ -514,7 +522,7 @@ export default function AdminDashboard() {
                           Severity {item.severity_score}
                         </span>
                         <h4 className="text-xs font-bold text-slate-800">{item.title}</h4>
-                        <p className="text-[10px] text-slate-450 leading-normal">{item.ward}</p>
+                        <p className="text-[10px] text-slate-450 leading-normal">{item.district}</p>
                         
                         <div className="flex justify-between items-center pt-2 border-t border-slate-100">
                           <span className="text-[10px] text-slate-400 font-bold">👥 {item.mentions} Reports</span>
@@ -548,7 +556,7 @@ export default function AdminDashboard() {
                           Severity {item.severity_score}
                         </span>
                         <h4 className="text-xs font-bold text-slate-800">{item.title}</h4>
-                        <p className="text-[10px] text-slate-455 leading-normal">{item.ward}</p>
+                        <p className="text-[10px] text-slate-455 leading-normal">{item.district}</p>
                         
                         <div className="flex justify-between items-center pt-2 border-t border-slate-100">
                           <span className="text-[10px] text-slate-400 font-bold">👥 {item.mentions} Reports</span>
@@ -582,7 +590,7 @@ export default function AdminDashboard() {
                           Severity {item.severity_score}
                         </span>
                         <h4 className="text-xs font-bold text-slate-800">{item.title}</h4>
-                        <p className="text-[10px] text-slate-455 leading-normal">{item.ward}</p>
+                        <p className="text-[10px] text-slate-455 leading-normal">{item.district}</p>
                         
                         <div className="flex justify-between items-center pt-2 border-t border-slate-100">
                           <span className="text-[10px] text-slate-400 font-bold">👥 {item.mentions} Reports</span>
@@ -616,7 +624,7 @@ export default function AdminDashboard() {
                           Severity {item.severity_score}
                         </span>
                         <h4 className="text-xs font-bold text-slate-800">{item.title}</h4>
-                        <p className="text-[10px] text-slate-455 leading-normal">{item.ward}</p>
+                        <p className="text-[10px] text-slate-455 leading-normal">{item.district}</p>
                         
                         <div className="flex justify-between items-center pt-2 border-t border-slate-100">
                           <span className="text-[10px] text-slate-400 font-bold">👥 {item.mentions} Reports</span>

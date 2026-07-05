@@ -6,8 +6,8 @@ const initialComplaints = [
     id: 'c1',
     text: 'Huge potholes near the main junction in Andheri East. Extremely dangerous at night.',
     category: 'Roads',
-    ward: 'Ward 4 - Andheri East',
-    latitude: 19.1155,
+    district: 'Indore',
+    latitude: 22.7196,
     longitude: 72.8755,
     status: 'Pending',
     created_at: new Date(Date.now() - 3600000 * 24 * 2).toISOString(), // 2 days ago
@@ -18,8 +18,8 @@ const initialComplaints = [
     id: 'c2',
     text: 'Continuous clean water leaking from the pipe near Sector 5 market. Wasting thousands of liters daily.',
     category: 'Water Supply',
-    ward: 'Ward 12 - Sector 5',
-    latitude: 19.1200,
+    district: 'Bhopal',
+    latitude: 23.2599,
     longitude: 72.8850,
     status: 'Pending',
     created_at: new Date(Date.now() - 3600000 * 24 * 3).toISOString(), // 3 days ago
@@ -30,8 +30,8 @@ const initialComplaints = [
     id: 'c3',
     text: 'Garbage dump pile has not been cleared for over a week near the park. Smells horrible.',
     category: 'Waste Management',
-    ward: 'Ward 2 - Vile Parle',
-    latitude: 19.1000,
+    district: 'Jabalpur',
+    latitude: 23.1815,
     longitude: 72.8450,
     status: 'In Progress',
     created_at: new Date(Date.now() - 3600000 * 12).toISOString(), // 12 hours ago
@@ -43,8 +43,8 @@ const initialComplaints = [
     id: 'c4',
     text: 'Streetlights are not functioning on the main highway stretch. High risk of accidents.',
     category: 'Electricity',
-    ward: 'Ward 8 - Sector 3',
-    latitude: 19.1300,
+    district: 'Gwalior',
+    latitude: 26.2183,
     longitude: 72.8600,
     status: 'Resolved',
     created_at: new Date(Date.now() - 3600000 * 24 * 5).toISOString(), // 5 days ago
@@ -62,8 +62,8 @@ const initialClusters = [
     sentiment: 'Highly Negative',
     status: 'Pending',
     department: 'PWD',
-    ward: 'Ward 4 - Andheri East',
-    center_latitude: 19.1155,
+    district: 'Indore',
+    center_latitude: 22.7196,
     center_longitude: 72.8755,
     mentions: 450,
     ai_summary: 'Severe potholes reported on main arterial roads near Andheri East junction causing high traffic delays and nighttime accidents. Rapid action required.',
@@ -77,8 +77,8 @@ const initialClusters = [
     sentiment: 'Negative',
     status: 'Pending',
     department: 'Jal Board',
-    ward: 'Ward 12 - Sector 5',
-    center_latitude: 19.1200,
+    district: 'Bhopal',
+    center_latitude: 23.2599,
     center_longitude: 72.8850,
     mentions: 210,
     ai_summary: 'Major clean water pipeline burst in Sector 5 commercial sector resulting in loss of drinking water supply to 200+ households. Residents are highly concerned.',
@@ -92,8 +92,8 @@ const initialClusters = [
     sentiment: 'Negative',
     status: 'In Progress',
     department: 'Waste Management',
-    ward: 'Ward 2 - Vile Parle',
-    center_latitude: 19.1000,
+    district: 'Jabalpur',
+    center_latitude: 23.1815,
     center_longitude: 72.8450,
     mentions: 95,
     ai_summary: 'Solid waste accumulation reported outside the municipal park area. Residents smell foul odor. Routed to sanitation team for pickup.',
@@ -107,14 +107,23 @@ const initialClusters = [
     sentiment: 'Neutral',
     status: 'Resolved',
     department: 'Electricity Board',
-    ward: 'Ward 8 - Sector 3',
-    center_latitude: 19.1300,
+    district: 'Gwalior',
+    center_latitude: 26.2183,
     center_longitude: 72.8600,
     mentions: 120,
     ai_summary: 'Dark spots created on major sub-lanes in Sector 3 due to bulb failure. Local corporation has replaced the wiring and standard LED lights.',
     complaint_ids: ['c4']
   }
 ];
+
+export const mpDistricts = [
+  "Agar Malwa", "Alirajpur", "Anuppur", "Ashoknagar", "Balaghat", "Barwani", "Betul", "Bhind", "Bhopal",
+  "Burhanpur", "Chhatarpur", "Chhindwara", "Damoh", "Datia", "Dewas", "Dhar", "Dindori", "Guna", "Gwalior",
+  "Harda", "Narmadapuram", "Indore", "Jabalpur", "Jhabua", "Katni", "Khandwa", "Khargone", "Mandla", "Mandsaur",
+  "Morena", "Narsinghpur", "Neemuch", "Niwari", "Panna", "Raisen", "Rajgarh", "Ratlam", "Rewa", "Sagar",
+  "Satna", "Sehore", "Seoni", "Shahdol", "Shajapur", "Sheopur", "Shivpuri", "Sidhi", "Singrauli", "Tikamgarh",
+  "Ujjain", "Umaria", "Vidisha", "Mauganj", "Pandhurna", "Maihar"
+].sort();
 
 export const useComplaintStore = create((set, get) => ({
   complaints: initialComplaints,
@@ -130,12 +139,12 @@ export const useComplaintStore = create((set, get) => ({
     };
 
     set((state) => {
-      // Find matching cluster by category and ward, or create a new one
+      // Find matching cluster by category and district, or create a new one
       const updatedComplaints = [complaint, ...state.complaints];
       let updatedClusters = [...state.clusters];
       
       const existingClusterIndex = updatedClusters.findIndex(
-        (c) => c.category === complaint.category && c.ward === complaint.ward
+        (c) => c.category === complaint.category && c.district === complaint.district
       );
 
       if (existingClusterIndex > -1) {
@@ -156,17 +165,17 @@ export const useComplaintStore = create((set, get) => ({
         const newClusterId = 'cl_' + Math.random().toString(36).substr(2, 9);
         const newCluster = {
           id: newClusterId,
-          title: `Reported ${complaint.category} Issue in ${complaint.ward.split(' - ')[1]}`,
+          title: `Reported ${complaint.category} Issue in ${complaint.district}`,
           category: complaint.category,
           severity_score: parseFloat((4.0 + Math.random() * 3.0).toFixed(1)),
           sentiment: 'Negative',
           status: 'Pending',
           department: getDepartmentByCategory(complaint.category),
-          ward: complaint.ward,
+          district: complaint.district,
           center_latitude: complaint.latitude || 19.1155,
           center_longitude: complaint.longitude || 72.8755,
           mentions: 1,
-          ai_summary: `Initial report of ${complaint.category} issues received in ${complaint.ward}. AI summary will compile as more citizens report.`,
+          ai_summary: `Initial report of ${complaint.category} issues received in ${complaint.district}. AI summary will compile as more citizens report.`,
           complaint_ids: [id]
         };
         updatedClusters.unshift(newCluster);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mic, Camera, FileText, MapPin, RefreshCw, Send, CheckCircle, Clock, AlertCircle, ChevronRight, ThumbsUp, Layers } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { useComplaintStore } from '../store/complaintStore';
+import { useComplaintStore, mpDistricts } from '../store/complaintStore';
 
 // Pre-defined sample photos representing civic issues for quick testing/demo
 const samplePhotos = [
@@ -39,7 +39,7 @@ export default function CitizenDashboard() {
   // Form State
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Roads');
-  const [ward, setWard] = useState('Ward 4 - Andheri East');
+  const [district, setDistrict] = useState('Indore');
   const [photoUrl, setPhotoUrl] = useState(null);
   
   // Simulated Interactive States
@@ -91,7 +91,7 @@ export default function CitizenDashboard() {
     setIsLocating(true);
     setTimeout(() => {
       setIsLocating(false);
-      setWard('Ward 4 - Andheri East');
+      setDistrict('Indore');
     }, 1200);
   };
 
@@ -130,7 +130,7 @@ export default function CitizenDashboard() {
       setIsScanning(true);
       setTimeout(() => {
         setIsScanning(false);
-        setDescription('Reported civic issue at current ward coordinate.');
+        setDescription('Reported civic issue at current district coordinate.');
         setCategory('Roads');
       }, 2200);
     }
@@ -146,12 +146,12 @@ export default function CitizenDashboard() {
       const complaintData = {
         text: description,
         category,
-        ward,
+        district,
         type: reportMethod,
         media_url: photoUrl,
         user: user?.email || 'guest@demo.com',
-        latitude: 19.1155 + (Math.random() - 0.5) * 0.02,
-        longitude: 72.8755 + (Math.random() - 0.5) * 0.02
+        latitude: 23.2599 + (Math.random() - 0.5) * 0.02,
+        longitude: 77.4126 + (Math.random() - 0.5) * 0.02
       };
 
       const result = addComplaint(complaintData);
@@ -262,8 +262,8 @@ export default function CitizenDashboard() {
                 <span className="font-bold text-slate-800">{submittedComplaint?.category} Problems</span>
               </div>
               <div className="flex justify-between">
-                <span>Constituency Ward:</span>
-                <span className="font-bold text-slate-800">{submittedComplaint?.ward}</span>
+                <span>Constituency District:</span>
+                <span className="font-bold text-slate-800">{submittedComplaint?.district}</span>
               </div>
               <div className="flex justify-between border-t border-blue-200/50 pt-2 mt-2">
                 <span>Community Upvotes:</span>
@@ -295,7 +295,7 @@ export default function CitizenDashboard() {
               
               {/* Left Column: Form Settings */}
               <div className="space-y-6 lg:col-span-1">
-                {/* Ward/Location Card */}
+                {/* District/Location Card */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
                   <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center">
                     <MapPin className="w-4 h-4 mr-1.5 text-blue-500" /> Location Details
@@ -303,17 +303,16 @@ export default function CitizenDashboard() {
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-500 mb-1">Detected Ward</label>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Detected District</label>
                       <div className="relative">
                         <select 
-                          value={ward} 
-                          onChange={(e) => setWard(e.target.value)}
+                          value={district} 
+                          onChange={(e) => setDistrict(e.target.value)}
                           className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                         >
-                          <option value="Ward 4 - Andheri East">Ward 4 - Andheri East</option>
-                          <option value="Ward 12 - Sector 5">Ward 12 - Sector 5</option>
-                          <option value="Ward 8 - Sector 3">Ward 8 - Sector 3</option>
-                          <option value="Ward 2 - Vile Parle">Ward 2 - Vile Parle</option>
+                          {mpDistricts.map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
                         </select>
                       </div>
                     </div>
