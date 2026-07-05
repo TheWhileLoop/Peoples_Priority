@@ -24,15 +24,21 @@ This document outlines the exact page-wise (Frontend) and route-wise (Backend) b
 ### 2. Abhishek Tayde - Admin Side Pages (Command Center)
 **Goal:** Build a beautiful, Bloomberg-terminal style dashboard for the MP/Admin.
 
-*   **Page: `AdminDashboard.jsx` (Main Overview)**
-    *   **UI Required:** Dark mode preferred. Top widgets for "Total Active vs Resolved".
-    *   **Functionality:** Add a live "AI Pulse" widget showing current public sentiment (e.g., 🔴 Frustrated).
-*   **Page: `PriorityReport.jsx` (The Core Feature)**
-    *   **UI Required:** Ranked list of **AI Clusters** (not individual complaints).
-    *   **Functionality:** Each row shows Rank, Title, Severity Score (e.g., 9.8/10), and Mentions. Clicking a row expands it to show the Gemini AI summary and raw photos/audio below it.
-*   **Page: `WeeklySummary.jsx` & `DepartmentKanban.jsx`**
-    *   **UI Required:** A beautiful newsletter-style view for the Gemini weekly report. 
-    *   **Functionality:** Kanban board (Todo -> PWD, Todo -> Jal Board) where admin can approve AI-suggested routing.
+*   **Page: `AdminDashboard.jsx` (Main Command Center & Map View)**
+    *   **UI Required:** Premium Dark mode. Top summary widgets: "Total Active vs Resolved", AI Pulse widget (Sentiment: 🔴 Frustrated).
+    *   **Interactive Heatmap:** Visual SVG constituency map showing color-coded priority/severity of wards. Hovering over a ward displays top AI issues.
+*   **Page: `PriorityReport.jsx` (AI Clusters & Complaints)**
+    *   **UI Required:** Ranked list of AI Clusters (Water shortage, Roads, Streetlights). Shows Rank, Title, Severity (1-10), Mentions, and Current Status.
+    *   **Cluster Details:** Clicking an issue row expands it to show:
+        - Gemini AI Summary paragraph (e.g., "Roads are damaged...").
+        - List of nested raw citizen complaints with text, photo preview, and audio status.
+        - Status update dropdown/toggle to mark as `Pending`, `In Progress`, or `Resolved`.
+*   **Page: `WeeklySummary.jsx` (Gemini AI Summary Report)**
+    *   **UI Required:** Elegant newsletter-style weekly dashboard.
+    *   **Functionality:** Displays weekly insights. Interactive buttons to "Download PDF" and "Send to WhatsApp" (simulated prompt notifications).
+*   **Page: `DepartmentKanban.jsx` (Kanban Board Routing)**
+    *   **UI Required:** Kanban columns representing departments (PWD, Jal Board, Waste Management, Electricity).
+    *   **Functionality:** Cards representing clusters that can be dragged or single-click routed to different departments.
 
 ---
 

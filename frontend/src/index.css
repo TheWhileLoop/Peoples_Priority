@@ -1,8 +1,70 @@
 @import "tailwindcss";
 
+@theme {
+  --color-bg-base: #F8FAFC;
+  --color-bg-sidebar: #FFFFFF;
+  --color-bg-card: #FFFFFF;
+  --color-bg-elevated: #F1F5F9;
+  --color-border-1: #E2E8F0;
+  --color-border-2: #CBD5E1;
+  --color-signal-400: #6366F1;
+  --color-signal-500: #4F46E5;
+  --color-signal-600: #3730A3;
+  --color-cyan-400: #0284C7;
+  --color-cyan-500: #0369A1;
+  --color-gold-400: #F59E0B;
+  --color-gold-500: #D97706;
+}
+
 @layer base {
   body {
-    background-color: #f9fafb;
-    color: #111827;
+    background-color: #F8FAFC;
+    color: #334155;
   }
 }
+
+/* Custom Hackathon Interactive Animations */
+@keyframes wave {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+.animate-wave {
+  animation: wave 1s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes scan {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(176px); }
+  100% { transform: translateY(0); }
+}
+
+.animate-scan {
+  animation: scan 2.2s ease-in-out infinite;
+}
+
+@keyframes fall {
+  0% {
+    transform: translateY(0) rotate(0deg) translateX(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(50vh) rotate(180deg) translateX(20px);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg) translateX(-20px);
+    opacity: 0;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
