@@ -14,3 +14,12 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 
 # Load task modules from all registered Django apps.
 app.autodiscover_tasks()
+
+from celery.schedules import crontab
+
+app.conf.beat_schedule = {
+    'generate-weekly-briefing-every-monday': {
+        'task': 'analysis.tasks.generate_weekly_briefing',
+        'schedule': crontab(day_of_week=1, hour=9, minute=0),
+    },
+}

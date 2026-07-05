@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { useComplaintStore } from '../store/complaintStore';
+import { useComplaintStore, BASE_URL } from '../store/complaintStore';
 import { 
   LayoutDashboard, AlertOctagon, Kanban, Newspaper, LogOut, 
   CheckCircle2, AlertCircle, ThumbsUp, ArrowRight, User, 
@@ -113,6 +113,7 @@ export default function AdminDashboard() {
   };
 
   const triggerPdfDownload = () => {
+    window.open(`${BASE_URL}/weekly-summary/download-pdf/`, '_blank');
     setShowPdfAlert(true);
     setTimeout(() => setShowPdfAlert(false), 3000);
   };
@@ -706,9 +707,26 @@ export default function AdminDashboard() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                   <p className="text-slate-500 font-bold animate-pulse">Gemini AI is analyzing constituency data...</p>
                 </div>
+              ) : weeklySummary.error ? (
+                <div className="text-red-500 text-center py-8 font-semibold">{weeklySummary.error}</div>
               ) : (
-                <div className="text-slate-600 whitespace-pre-wrap leading-relaxed">
-                  {weeklySummary}
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-blue-900 font-bold uppercase text-xs tracking-wider mb-2">Executive Summary</h3>
+                    <p className="text-slate-600 leading-relaxed bg-blue-50/50 p-4 rounded-xl border border-blue-100">{weeklySummary.executive_summary}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-red-900 font-bold uppercase text-xs tracking-wider mb-2 flex items-center gap-1.5">
+                      <AlertOctagon className="w-4 h-4 text-red-500" /> Critical Bottleneck
+                    </h3>
+                    <p className="text-slate-600 leading-relaxed bg-red-50/50 p-4 rounded-xl border border-red-100">{weeklySummary.critical_bottleneck}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-emerald-900 font-bold uppercase text-xs tracking-wider mb-2 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Successful Resolution
+                    </h3>
+                    <p className="text-slate-600 leading-relaxed bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">{weeklySummary.successful_resolution}</p>
+                  </div>
                 </div>
               )}
             </div>
