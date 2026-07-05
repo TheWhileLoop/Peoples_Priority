@@ -11,33 +11,68 @@ export default function AdminDashboard() {
   const { user, logout } = useAuthStore();
   const { 
     complaints, 
-    clusters, 
+    clusters,
+    adminStats,
+    adminFiltersData,
+    weeklySummary,
     updateClusterStatus, 
     routeClusterDepartment,
     fetchComplaints,
-    fetchClusters 
+    fetchClusters,
+    fetchAdminStats,
+    fetchAdminFiltersData,
+    fetchWeeklySummary
   } = useComplaintStore();
   
   // Tab/Navigation state
   const [adminTab, setAdminTab] = useState('dashboard'); // 'dashboard' | 'clusters' | 'kanban' | 'weekly'
   const [hoveredWard, setHoveredWard] = useState(null);
+  
+  // Global Filters
+  const [selectedDistrict, setSelectedDistrict] = useState('All');
   const [selectedWardFilter, setSelectedWardFilter] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  
   const [expandedClusterId, setExpandedClusterId] = useState(null);
   
   // Weekly briefs
   const [showPdfAlert, setShowPdfAlert] = useState(false);
   const [showWhatsAppAlert, setShowWhatsAppAlert] = useState(false);
 
-  // Fetch from backend on mount
+  // Fetch initial data (filters and stats)
   useEffect(() => {
+    fetchAdminFiltersData();
     fetchComplaints();
-    fetchClusters();
   }, []);
 
+<<<<<<< HEAD
   // Filter based on Admin's assigned state
   // If no state is set in profile, show ALL clusters (demo mode)
   const adminState = user?.profile?.state || null;
+||||||| b657ad0
+  // Filter based on Admin's assigned state (default to Maharashtra)
+  const adminState = user?.profile?.state || 'Maharashtra';
+=======
+  // Fetch filtered data when filters change
+  useEffect(() => {
+    const filters = {
+      district: selectedDistrict,
+      ward: selectedWardFilter,
+      category: selectedCategory
+    };
+    fetchAdminStats(filters);
+    fetchClusters(filters);
+    
+    if (adminTab === 'weekly') {
+      fetchWeeklySummary(filters);
+    }
+  }, [selectedDistrict, selectedWardFilter, selectedCategory, adminTab]);
+
+  // Filter based on Admin's assigned state (default to Maharashtra)
+  const adminState = user?.profile?.state || 'Maharashtra';
+>>>>>>> 00afb3cd1bbb16be7d6e127dcc0d1761d337c30b
   
+<<<<<<< HEAD
   // Show all clusters when no state is configured (demo mode), else filter by state
   const stateClusters = adminState
     ? clusters.filter(c => !c.state || c.state.toLowerCase() === adminState.toLowerCase())
@@ -56,6 +91,28 @@ export default function AdminDashboard() {
   const highSeverityCount = activeClusters.filter(c => parseFloat(c.severity_score) >= 7.5).length;
   const publicSentiment = highSeverityCount > 2 ? '🔴 Highly Frustrated' : highSeverityCount >= 1 ? '🟡 Concerned' : '🟢 Satisfied';
 
+||||||| b657ad0
+  // Filter clusters matching the admin's state
+  const stateClusters = clusters.filter(
+    c => !c.state || c.state.toLowerCase() === adminState.toLowerCase()
+  );
+
+  const stateComplaints = complaints.filter(
+    c => stateClusters.some(cluster => cluster.id === c.cluster || cluster.complaints?.some(x => x.id === c.id))
+  );
+
+  // Statistics calculation
+  const totalIssuesCount = stateComplaints.length;
+  const activeIssuesCount = stateComplaints.filter(c => c.status !== 'resolved').length;
+  const resolvedIssuesCount = stateComplaints.filter(c => c.status === 'resolved').length;
+  
+  // Public sentiment index based on severity
+  const activeClusters = stateClusters.filter(c => c.status !== 'resolved');
+  const highSeverityCount = activeClusters.filter(c => parseFloat(c.severity_score) >= 7.5).length;
+  const publicSentiment = highSeverityCount > 2 ? '🔴 Highly Frustrated' : highSeverityCount >= 1 ? '🟡 Concerned' : '🟢 Satisfied';
+
+=======
+>>>>>>> 00afb3cd1bbb16be7d6e127dcc0d1761d337c30b
   // SVG Heatmap Ward Configs
   const wardsConfig = [
     { id: 'w4', name: 'Ward 4 - Andheri East', pathName: 'Andheri East', x: 20, y: 20, w: 200, h: 100 },
@@ -89,7 +146,7 @@ export default function AdminDashboard() {
   };
 
   const getWardColorClass = (wardName) => {
-    const wardClusters = activeClusters.filter(c => c.ward === wardName);
+    const wardClusters = clusters.filter(c => c.ward === wardName && c.status !== 'resolved');
     if (wardClusters.length === 0) return 'fill-emerald-50 bg-emerald-50/10 stroke-emerald-500/40 hover:fill-emerald-100/50';
     
     const maxSeverity = Math.max(...wardClusters.map(c => parseFloat(c.severity_score)));
@@ -99,7 +156,7 @@ export default function AdminDashboard() {
   };
 
   const getWardSeverity = (wardName) => {
-    const wardClusters = activeClusters.filter(c => c.ward === wardName);
+    const wardClusters = clusters.filter(c => c.ward === wardName && c.status !== 'resolved');
     if (wardClusters.length === 0) return '0.0 (Clear)';
     const maxSeverity = Math.max(...wardClusters.map(c => parseFloat(c.severity_score)));
     return `${maxSeverity.toFixed(1)}/10`;
@@ -116,10 +173,12 @@ export default function AdminDashboard() {
   };
 
   // Filtered clusters for the Priority List
-  const filteredClusters = stateClusters.filter(c => {
+  const filteredClusters = clusters.filter(c => {
     if (selectedWardFilter === 'All') return true;
     return c.ward === selectedWardFilter;
   });
+
+  const activeClusters = clusters.filter(c => c.status !== 'resolved');
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-700 flex flex-col md:flex-row relative overflow-hidden">
@@ -166,9 +225,9 @@ export default function AdminDashboard() {
             >
               <AlertOctagon className="w-4 h-4" />
               <span>Priority Clusters</span>
-              {activeClusters.length > 0 && (
+              {adminStats.active_clusters > 0 && (
                 <span className="ml-auto bg-red-500 text-white text-xs px-2.5 py-0.5 rounded-full font-bold">
-                  {activeClusters.length}
+                  {adminStats.active_clusters}
                 </span>
               )}
             </button>
@@ -225,27 +284,60 @@ export default function AdminDashboard() {
               </div>
               <div className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-right shadow-sm">
                 <span className="text-[10px] font-bold text-slate-400 block uppercase">AI Pulse Sentiment</span>
-                <span className="text-xs font-black text-red-600">{publicSentiment}</span>
+                <span className="text-xs font-black text-red-600">{adminStats.public_sentiment}</span>
               </div>
+            </div>
+
+            {/* Global Filters */}
+            <div className="flex flex-wrap gap-4 items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+              <span className="text-sm font-bold text-slate-500 flex items-center">
+                <Layers className="w-4 h-4 mr-2" /> Global Filters:
+              </span>
+              <select 
+                className="bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-1.5 font-medium text-slate-700 outline-none focus:border-blue-500"
+                value={selectedDistrict}
+                onChange={(e) => setSelectedDistrict(e.target.value)}
+              >
+                <option value="All">All Districts</option>
+                {adminFiltersData.districts?.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+              
+              <select 
+                className="bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-1.5 font-medium text-slate-700 outline-none focus:border-blue-500"
+                value={selectedWardFilter}
+                onChange={(e) => setSelectedWardFilter(e.target.value)}
+              >
+                <option value="All">All Wards</option>
+                {adminFiltersData.wards?.map(w => <option key={w} value={w}>{w}</option>)}
+              </select>
+
+              <select 
+                className="bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-1.5 font-medium text-slate-700 outline-none focus:border-blue-500"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                <option value="All">All Categories</option>
+                {adminFiltersData.categories?.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
 
             {/* Top Stat Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-2xl border border-slate-200 hover:border-blue-200 transition-all flex flex-col justify-between shadow-sm hover:shadow">
                 <span className="text-xs text-slate-400 font-bold uppercase">Total Reports Ingested</span>
-                <span className="text-4xl font-black text-blue-600 mt-3">{totalIssuesCount}</span>
+                <span className="text-4xl font-black text-blue-600 mt-3">{adminStats.total_ingested_reports}</span>
                 <span className="text-[10px] text-slate-500 mt-2">Active complaints submitted by citizens</span>
               </div>
               <div className="bg-white p-6 rounded-2xl border border-slate-200 hover:border-blue-200 transition-all flex flex-col justify-between shadow-sm hover:shadow">
                 <span className="text-xs text-slate-400 font-bold uppercase">Active AI Clusters</span>
                 <span className="text-4xl font-black text-red-500 mt-3">
-                  {activeClusters.length}
+                  {adminStats.active_clusters}
                 </span>
                 <span className="text-[10px] text-slate-500 mt-2">Grouped dynamically by 2km spatial radius</span>
               </div>
               <div className="bg-white p-6 rounded-2xl border border-slate-200 hover:border-blue-200 transition-all flex flex-col justify-between shadow-sm hover:shadow">
                 <span className="text-xs text-slate-400 font-bold uppercase">Resolved Issues</span>
-                <span className="text-4xl font-black text-emerald-600 mt-3">{resolvedIssuesCount}</span>
+                <span className="text-4xl font-black text-emerald-600 mt-3">{adminStats.resolved_issues}</span>
                 <span className="text-[10px] text-slate-500 mt-2">Verified completed by department</span>
               </div>
             </div>
@@ -352,7 +444,7 @@ export default function AdminDashboard() {
                         <div className="flex justify-between">
                           <span>Total Complaints:</span>
                           <span className="font-bold text-slate-800">
-                            {stateComplaints.filter(c => c.ward === hoveredWard).length}
+                            {complaints.filter(c => c.ward === hoveredWard).length}
                           </span>
                         </div>
                       </div>
@@ -574,14 +666,14 @@ export default function AdminDashboard() {
               <div className="bg-slate-100/50 p-4 rounded-2xl border border-slate-200/60 flex flex-col space-y-4">
                 <h3 className="text-xs font-black text-red-600 uppercase tracking-wider border-b border-slate-200 pb-2">Awaiting Action</h3>
                 <div className="space-y-3 flex-grow">
-                  {stateClusters.filter(c => c.status === 'pending_ai').map(cluster => (
+                  {clusters.filter(c => c.status === 'pending_ai').map(cluster => (
                     <div key={cluster.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
                       <span className="text-[8px] font-bold text-red-650 bg-red-50 border border-red-100 px-1.5 py-0.5 rounded uppercase">CRITICAL</span>
                       <h4 className="text-xs font-bold text-slate-800 capitalize">{cluster.title}</h4>
                       <p className="text-[9px] text-slate-450">{cluster.ward}</p>
                     </div>
                   ))}
-                  {stateClusters.filter(c => c.status === 'pending_ai').length === 0 && (
+                  {clusters.filter(c => c.status === 'pending_ai').length === 0 && (
                     <p className="text-[10px] text-slate-400 italic text-center py-8">Clean box. No pending pipeline items.</p>
                   )}
                 </div>
@@ -591,14 +683,14 @@ export default function AdminDashboard() {
               <div className="bg-slate-100/50 p-4 rounded-2xl border border-slate-200/60 flex flex-col space-y-4">
                 <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b border-slate-200 pb-2">In Progress</h3>
                 <div className="space-y-3 flex-grow">
-                  {stateClusters.filter(c => c.status === 'in_progress' || c.status === 'pending_dept').map(cluster => (
+                  {clusters.filter(c => c.status === 'in_progress' || c.status === 'pending_dept').map(cluster => (
                     <div key={cluster.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
                       <span className="text-[8px] font-bold text-orange-700 bg-orange-50 border border-orange-100 px-1.5 py-0.5 rounded uppercase">Routed: {cluster.department || 'General'}</span>
                       <h4 className="text-xs font-bold text-slate-800 capitalize">{cluster.title}</h4>
                       <p className="text-[9px] text-slate-450">{cluster.ward}</p>
                     </div>
                   ))}
-                  {stateClusters.filter(c => c.status === 'in_progress' || c.status === 'pending_dept').length === 0 && (
+                  {clusters.filter(c => c.status === 'in_progress' || c.status === 'pending_dept').length === 0 && (
                     <p className="text-[10px] text-slate-400 italic text-center py-8">No current tasks in progress.</p>
                   )}
                 </div>
@@ -608,14 +700,14 @@ export default function AdminDashboard() {
               <div className="bg-slate-100/50 p-4 rounded-2xl border border-slate-200/60 flex flex-col space-y-4">
                 <h3 className="text-xs font-black text-emerald-600 uppercase tracking-wider border-b border-slate-200 pb-2">Resolved</h3>
                 <div className="space-y-3 flex-grow">
-                  {stateClusters.filter(c => c.status === 'resolved').map(cluster => (
+                  {clusters.filter(c => c.status === 'resolved').map(cluster => (
                     <div key={cluster.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
                       <span className="text-[8px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded uppercase">COMPLETED</span>
                       <h4 className="text-xs font-bold text-slate-850 line-through capitalize">{cluster.title}</h4>
                       <p className="text-[9px] text-slate-400">{cluster.ward}</p>
                     </div>
                   ))}
-                  {stateClusters.filter(c => c.status === 'resolved').length === 0 && (
+                  {clusters.filter(c => c.status === 'resolved').length === 0 && (
                     <p className="text-[10px] text-slate-400 italic text-center py-8">No resolved items recorded.</p>
                   )}
                 </div>
@@ -656,40 +748,19 @@ export default function AdminDashboard() {
               <div className="border-b border-slate-100 pb-4 text-center">
                 <span className="text-2xl">🏛️</span>
                 <h2 className="text-lg font-black text-slate-900 uppercase mt-2">Executive Grievance Newsletter</h2>
-                <p className="text-[10px] text-slate-450 font-bold uppercase tracking-wider">Office of state administration · {adminState}</p>
+                <p className="text-[10px] text-slate-450 font-bold uppercase tracking-wider">Office of state administration</p>
               </div>
 
-              <div>
-                <h3 className="font-extrabold text-slate-900 border-l-3 border-blue-500 pl-2">1. Weekly Executive Summary</h3>
-                <p className="text-slate-500 text-xs mt-2">
-                  Honorable Member of Parliament, this week saw a significant change in local report densities. 
-                  Due to swift actions by the sanitation department, solid waste complaints drops by 12% overall in {adminState}. 
-                  However, street-light wiring faults and pothole accidents are emerging in higher frequency around Ward 4.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-extrabold text-slate-900 border-l-3 border-red-500 pl-2">2. Critical Infrastructure Bottlenecks</h3>
-                <p className="text-slate-500 text-xs mt-2">
-                  <strong>Road damage near metro junctions:</strong> 12 citizen complaints compiled. Current severity rating is 9.2/10. 
-                  High risk of vehicle accidents reported during wet weather. Recommend immediate allocation of emergency roadworks funds to NHAI/PWD.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-extrabold text-slate-900 border-l-3 border-emerald-500 pl-2">3. Weekly Resolutions Highlights</h3>
-                <p className="text-slate-500 text-xs mt-2">
-                  <strong>Sector 3 streetlight maintenance:</strong> Completed! DISCOM replaced old copper wiring and standard LED assemblies, resolving complaints for 120+ households. Sentiment has shifted positively in the ward.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-extrabold text-slate-900 border-l-3 border-purple-500 pl-2">4. Public Sentiment Profile</h3>
-                <p className="text-slate-500 text-xs mt-2">
-                  Citizen sentiment index in {adminState} is indexed as <strong>Concerned</strong> (74% neutral/negative mentions). 
-                  Most negativity is tied to public utility responses. High resolution rate of electricity complaints has generated localized positive feedback.
-                </p>
-              </div>
+              {!weeklySummary ? (
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <p className="text-slate-500 font-bold animate-pulse">Gemini AI is analyzing constituency data...</p>
+                </div>
+              ) : (
+                <div className="text-slate-600 whitespace-pre-wrap leading-relaxed">
+                  {weeklySummary}
+                </div>
+              )}
             </div>
           </div>
         )}

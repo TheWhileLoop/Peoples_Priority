@@ -22,12 +22,29 @@ from data_collection.serializers import ComplaintSerializer
 @api_view(['GET'])
 def admin_stats(request):
     """ GET /api/admin/stats/ """
-    total_complaints = Complaint.objects.count()
-    active_clusters = IssueCluster.objects.exclude(status='resolved').count()
-    resolved_issues = IssueCluster.objects.filter(status='resolved').count()
+    district = request.query_params.get('district', None)
+    ward = request.query_params.get('ward', None)
+    category = request.query_params.get('category', None)
+
+    complaints_qs = Complaint.objects.all()
+    clusters_qs = IssueCluster.objects.all()
+
+    if district:
+        complaints_qs = complaints_qs.filter(district=district)
+        clusters_qs = clusters_qs.filter(district=district)
+    if ward:
+        complaints_qs = complaints_qs.filter(ward=ward)
+        clusters_qs = clusters_qs.filter(ward=ward)
+    if category:
+        complaints_qs = complaints_qs.filter(category=category)
+        clusters_qs = clusters_qs.filter(category=category)
+
+    total_complaints = complaints_qs.count()
+    active_clusters = clusters_qs.exclude(status='resolved').count()
+    resolved_issues = clusters_qs.filter(status='resolved').count()
     
     # Calculate most common sentiment (simple approach)
-    sentiments = IssueCluster.objects.exclude(sentiment__isnull=True).values('sentiment').annotate(count=Count('id')).order_by('-count')
+    sentiments = clusters_qs.exclude(sentiment__isnull=True).values('sentiment').annotate(count=Count('id')).order_by('-count')
     dominant_sentiment = sentiments[0]['sentiment'] if sentiments else "Neutral"
     
     return Response({
@@ -62,7 +79,7 @@ class IssueClusterViewSet(viewsets.ModelViewSet):
     serializer_class = IssueClusterSerializer
 
     def get_queryset(self):
-        queryset = IssueCluster.objects.all().order_by('-severity_score')
+        queryset = IssueCluster.objects.prefetch_related('complaints').all().order_by('-severity_score')
         
         # Filtering based on query params
         district = self.request.query_params.get('district', None)

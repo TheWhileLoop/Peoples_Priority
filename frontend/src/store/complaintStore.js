@@ -11,8 +11,48 @@ const getHeaders = () => {
 export const useComplaintStore = create((set, get) => ({
   complaints: [],
   clusters: [],
+  adminStats: { total_ingested_reports: 0, active_clusters: 0, resolved_issues: 0, public_sentiment: 'Loading...' },
+  adminFiltersData: { districts: [], wards: [], categories: [] },
+  weeklySummary: null,
   loading: false,
   error: null,
+
+  fetchAdminStats: async (filters = {}) => {
+    try {
+      const params = new URLSearchParams();
+      if (filters.district && filters.district !== 'All') params.append('district', filters.district);
+      if (filters.ward && filters.ward !== 'All') params.append('ward', filters.ward);
+      if (filters.category && filters.category !== 'All') params.append('category', filters.category);
+      
+      const res = await axios.get(`${BASE_URL}/admin/stats/?${params.toString()}`, { headers: getHeaders() });
+      set({ adminStats: res.data });
+    } catch (err) {
+      console.error("Error fetching admin stats", err);
+    }
+  },
+
+  fetchAdminFiltersData: async () => {
+    try {
+      const res = await axios.get(`${BASE_URL}/admin/filters/`, { headers: getHeaders() });
+      set({ adminFiltersData: res.data });
+    } catch (err) {
+      console.error("Error fetching admin filters", err);
+    }
+  },
+
+  fetchWeeklySummary: async (filters = {}) => {
+    set({ weeklySummary: null }); // Set to null to show loading state
+    try {
+      const params = new URLSearchParams();
+      if (filters.district && filters.district !== 'All') params.append('district', filters.district);
+      
+      const res = await axios.get(`${BASE_URL}/weekly-summary/?${params.toString()}`, { headers: getHeaders() });
+      set({ weeklySummary: res.data.summary });
+    } catch (err) {
+      console.error("Error fetching weekly summary", err);
+      set({ weeklySummary: "Error generating AI summary." });
+    }
+  },
 
   // Fetch all complaints from DB
   fetchComplaints: async () => {
@@ -27,10 +67,15 @@ export const useComplaintStore = create((set, get) => ({
   },
 
   // Fetch all clustered issues from DB
-  fetchClusters: async () => {
+  fetchClusters: async (filters = {}) => {
     set({ loading: true, error: null });
     try {
-      const res = await axios.get(`${BASE_URL}/analyze/clusters/`, { headers: getHeaders() });
+      const params = new URLSearchParams();
+      if (filters.district && filters.district !== 'All') params.append('district', filters.district);
+      if (filters.ward && filters.ward !== 'All') params.append('ward', filters.ward);
+      if (filters.category && filters.category !== 'All') params.append('category', filters.category);
+
+      const res = await axios.get(`${BASE_URL}/clusters/?${params.toString()}`, { headers: getHeaders() });
       set({ clusters: res.data, loading: false });
     } catch (err) {
       console.warn("Backend unreachable, keeping fallback or empty clusters list.");
@@ -147,7 +192,7 @@ export const useComplaintStore = create((set, get) => ({
   // Admin routes a cluster to a new department
   routeClusterDepartment: async (clusterId, newDepartment) => {
     try {
-      const res = await axios.patch(`${BASE_URL}/analyze/clusters/${clusterId}/`, {
+      const res = await axios.patch(`${BASE_URL}/clusters/${clusterId}/`, {
         department: newDepartment
       }, { headers: getHeaders() });
 
@@ -167,7 +212,7 @@ export const useComplaintStore = create((set, get) => ({
   // Admin changes status of an entire cluster (resolves or sets in progress)
   updateClusterStatus: async (clusterId, newStatus) => {
     try {
-      const res = await axios.patch(`${BASE_URL}/analyze/clusters/${clusterId}/`, {
+      const res = await axios.patch(`${BASE_URL}/clusters/${clusterId}/`, {
         status: newStatus
       }, { headers: getHeaders() });
 
