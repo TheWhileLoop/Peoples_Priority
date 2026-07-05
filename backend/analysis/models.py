@@ -1,6 +1,14 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class IssueCluster(models.Model):
+    STATUS_CHOICES = [
+        ('pending_ai', 'Pending AI Review'),
+        ('pending_dept', 'Pending Department'),
+        ('in_progress', 'In Progress'),
+        ('resolved', 'Resolved')
+    ]
+
     title = models.CharField(max_length=255)
     ai_summary = models.TextField()
     category = models.CharField(max_length=50)
@@ -8,16 +16,18 @@ class IssueCluster(models.Model):
     mentions_count = models.IntegerField(default=1)
     sentiment = models.CharField(max_length=50, null=True, blank=True)
     
-    status = models.CharField(
-        max_length=50,
-        choices=[
-            ('pending_ai', 'Pending AI Review'),
-            ('pending_dept', 'Pending Department'),
-            ('in_progress', 'In Progress'),
-            ('resolved', 'Resolved')
-        ],
-        default='pending_ai'
-    )
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='pending_ai')
+    
+    # State-wise and District-wise routing
+    state = models.CharField(max_length=100, null=True, blank=True)
+    district = models.CharField(max_length=100, null=True, blank=True)
+    department = models.CharField(max_length=100, null=True, blank=True)
+    
+    # Geographical average location
+    center_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    center_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    
+    action_log = models.JSONField(default=list, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -25,3 +35,15 @@ class IssueCluster(models.Model):
     def __str__(self):
         return f"{self.title} ({self.severity_score}/10)"
 
+
+class AdminAction(models.Model):
+    cluster = models.ForeignKey(IssueCluster, on_delete=models.CASCADE, related_name='actions')
+    admin_user = models.ForeignKey(User, on_delete=models.CASCADE)
+    action_type = models.CharField(max_length=50) # status_change, dept_routed, escalated
+    old_value = models.CharField(max_length=255, null=True, blank=True)
+    new_value = models.CharField(max_length=255, null=True, blank=True)
+    notes = models.TextField(null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.admin_user.username} - {self.action_type} on Cluster {self.cluster.id}"
