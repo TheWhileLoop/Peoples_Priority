@@ -21,6 +21,8 @@ class IssueCluster(models.Model):
     # State-wise and District-wise routing
     state = models.CharField(max_length=100, null=True, blank=True)
     district = models.CharField(max_length=100, null=True, blank=True)
+    city = models.CharField(max_length=100, null=True, blank=True)
+    ward = models.CharField(max_length=100, null=True, blank=True)
     department = models.CharField(max_length=100, null=True, blank=True)
     
     # Geographical average location
