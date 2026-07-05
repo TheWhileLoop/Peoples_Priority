@@ -135,7 +135,7 @@ export const useComplaintStore = create((set, get) => ({
       let updatedClusters = [...state.clusters];
       
       const existingClusterIndex = updatedClusters.findIndex(
-        (c) => c.category === complaint.category && c.ward === complaint.ward
+        (c) => c.category === complaint.category
       );
 
       if (existingClusterIndex > -1) {
@@ -156,17 +156,16 @@ export const useComplaintStore = create((set, get) => ({
         const newClusterId = 'cl_' + Math.random().toString(36).substr(2, 9);
         const newCluster = {
           id: newClusterId,
-          title: `Reported ${complaint.category} Issue in ${complaint.ward.split(' - ')[1]}`,
+          title: `Reported ${complaint.category} Issue`,
           category: complaint.category,
           severity_score: parseFloat((4.0 + Math.random() * 3.0).toFixed(1)),
           sentiment: 'Negative',
           status: 'Pending',
           department: getDepartmentByCategory(complaint.category),
-          ward: complaint.ward,
           center_latitude: complaint.latitude || 19.1155,
           center_longitude: complaint.longitude || 72.8755,
           mentions: 1,
-          ai_summary: `Initial report of ${complaint.category} issues received in ${complaint.ward}. AI summary will compile as more citizens report.`,
+          ai_summary: `Initial report of ${complaint.category} issues received. AI summary will compile as more citizens report.`,
           complaint_ids: [id]
         };
         updatedClusters.unshift(newCluster);
