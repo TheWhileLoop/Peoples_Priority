@@ -33,7 +33,9 @@ INSTALLED_APPS = [
     'cloudinary_storage',
     'cloudinary',
     # Local apps
-    'api',
+    'authentication',
+    'data_collection',
+    'analysis',
 ]
 
 MIDDLEWARE = [
