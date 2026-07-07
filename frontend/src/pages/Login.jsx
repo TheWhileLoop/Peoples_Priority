@@ -521,6 +521,7 @@ export default function Login() {
   const [view, setView] = useState('login');
   // loginTab: 'email' | 'phone'
   const [loginTab, setLoginTab] = useState('email');
+  const [showCitizenDropdown, setShowCitizenDropdown] = useState(false);
 
   const [error, setError] = useState('');
   const [infoMessage, setInfoMessage] = useState('');
@@ -533,11 +534,11 @@ export default function Login() {
   const switchTab = (t) => { setLoginTab(t); setError(''); setInfoMessage(''); };
 
   // ── Demo quick-login (offline fallback) ──────────────────────
-  const handleDemoLogin = async (role) => {
+  const handleDemoLogin = async (role, specificUsername = null) => {
     setError('');
     setInfoMessage('');
     const demoPassword = role === 'admin' ? 'demo_admin123' : 'demo_citizen123';
-    const demoUsername = role === 'admin' ? 'admin' : 'citizen';
+    const demoUsername = role === 'admin' ? 'admin' : (specificUsername || 'citizen');
 
     try {
       const res = await axios.post(`${API}/login/`, { username: demoUsername, password: demoPassword });
@@ -645,18 +646,37 @@ export default function Login() {
                     </span>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <button
-                    id="demo-citizen-btn"
-                    onClick={() => handleDemoLogin('citizen')}
-                    className="flex items-center justify-center py-2.5 px-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-bold rounded-xl transition-all"
-                  >
-                    👤 Demo Citizen
-                  </button>
+                <div className="grid grid-cols-2 gap-2.5 relative">
+                  <div className="relative">
+                    <button
+                      id="demo-citizen-btn"
+                      onClick={() => setShowCitizenDropdown(!showCitizenDropdown)}
+                      className="w-full flex items-center justify-center py-2.5 px-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-bold rounded-xl transition-all"
+                    >
+                      👤 Demo Citizen <ChevronDown className="w-3.5 h-3.5 ml-1" />
+                    </button>
+                    {showCitizenDropdown && (
+                      <div className="absolute top-full mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden text-xs font-bold text-slate-700">
+                        <button onClick={() => handleDemoLogin('citizen', 'geetanshi')} className="block w-full text-left px-4 py-2.5 hover:bg-slate-50 border-b border-slate-100">
+                          Geetanshi Jain
+                        </button>
+                        <button onClick={() => handleDemoLogin('citizen', 'abhishek_y')} className="block w-full text-left px-4 py-2.5 hover:bg-slate-50 border-b border-slate-100">
+                          Abhishek Yaduwanshi
+                        </button>
+                        <button onClick={() => handleDemoLogin('citizen', 'ayush')} className="block w-full text-left px-4 py-2.5 hover:bg-slate-50 border-b border-slate-100">
+                          Ayush Jaiswal
+                        </button>
+                        <button onClick={() => handleDemoLogin('citizen', 'abhishek_t')} className="block w-full text-left px-4 py-2.5 hover:bg-slate-50">
+                          Abhishek Tayde
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  
                   <button
                     id="demo-admin-btn"
                     onClick={() => handleDemoLogin('admin')}
-                    className="flex items-center justify-center py-2.5 px-3 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all"
+                    className="flex items-center justify-center py-2.5 px-3 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all h-[42px]"
                   >
                     🏛️ Demo MP (Admin)
                   </button>
