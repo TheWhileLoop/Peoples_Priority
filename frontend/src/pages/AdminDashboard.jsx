@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useComplaintStore } from '../store/complaintStore';
-import { 
-  LayoutDashboard, AlertOctagon, Kanban, Newspaper, LogOut, 
-  CheckCircle2, AlertCircle, ThumbsUp, ArrowRight, User, 
+import {
+  LayoutDashboard, AlertOctagon, Kanban, Newspaper, LogOut,
+  CheckCircle2, AlertCircle, ThumbsUp, ArrowRight, User,
   MapPin, RefreshCw, Send, Layers, HelpCircle
 } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { user, logout } = useAuthStore();
-  const { 
-    complaints, 
+  const {
+    complaints,
     clusters,
     adminStats,
     adminFiltersData,
     weeklySummary,
-    updateClusterStatus, 
+    updateClusterStatus,
     routeClusterDepartment,
     fetchComplaints,
     fetchClusters,
@@ -23,18 +23,18 @@ export default function AdminDashboard() {
     fetchAdminFiltersData,
     fetchWeeklySummary
   } = useComplaintStore();
-  
+
   // Tab/Navigation state
   const [adminTab, setAdminTab] = useState('dashboard'); // 'dashboard' | 'clusters' | 'kanban' | 'weekly'
   const [hoveredWard, setHoveredWard] = useState(null);
-  
+
   // Global Filters
   const [selectedDistrict, setSelectedDistrict] = useState('All');
   const [selectedWardFilter, setSelectedWardFilter] = useState('All');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  
+
   const [expandedClusterId, setExpandedClusterId] = useState(null);
-  
+
   // Weekly briefs
   const [showPdfAlert, setShowPdfAlert] = useState(false);
   const [showWhatsAppAlert, setShowWhatsAppAlert] = useState(false);
@@ -45,14 +45,6 @@ export default function AdminDashboard() {
     fetchComplaints();
   }, []);
 
-<<<<<<< HEAD
-  // Filter based on Admin's assigned state
-  // If no state is set in profile, show ALL clusters (demo mode)
-  const adminState = user?.profile?.state || null;
-||||||| b657ad0
-  // Filter based on Admin's assigned state (default to Maharashtra)
-  const adminState = user?.profile?.state || 'Maharashtra';
-=======
   // Fetch filtered data when filters change
   useEffect(() => {
     const filters = {
@@ -62,7 +54,7 @@ export default function AdminDashboard() {
     };
     fetchAdminStats(filters);
     fetchClusters(filters);
-    
+
     if (adminTab === 'weekly') {
       fetchWeeklySummary(filters);
     }
@@ -70,49 +62,7 @@ export default function AdminDashboard() {
 
   // Filter based on Admin's assigned state (default to Maharashtra)
   const adminState = user?.profile?.state || 'Maharashtra';
->>>>>>> 00afb3cd1bbb16be7d6e127dcc0d1761d337c30b
-  
-<<<<<<< HEAD
-  // Show all clusters when no state is configured (demo mode), else filter by state
-  const stateClusters = adminState
-    ? clusters.filter(c => !c.state || c.state.toLowerCase() === adminState.toLowerCase())
-    : clusters;
 
-  // All complaints (admin sees all)
-  const stateComplaints = complaints;
-
-  // Statistics calculation
-  const totalIssuesCount = stateComplaints.length;
-  const activeIssuesCount = stateComplaints.filter(c => c.status !== 'resolved').length;
-  const resolvedIssuesCount = stateComplaints.filter(c => c.status === 'resolved').length;
-  
-  // Public sentiment index based on severity
-  const activeClusters = stateClusters.filter(c => c.status !== 'resolved');
-  const highSeverityCount = activeClusters.filter(c => parseFloat(c.severity_score) >= 7.5).length;
-  const publicSentiment = highSeverityCount > 2 ? '🔴 Highly Frustrated' : highSeverityCount >= 1 ? '🟡 Concerned' : '🟢 Satisfied';
-
-||||||| b657ad0
-  // Filter clusters matching the admin's state
-  const stateClusters = clusters.filter(
-    c => !c.state || c.state.toLowerCase() === adminState.toLowerCase()
-  );
-
-  const stateComplaints = complaints.filter(
-    c => stateClusters.some(cluster => cluster.id === c.cluster || cluster.complaints?.some(x => x.id === c.id))
-  );
-
-  // Statistics calculation
-  const totalIssuesCount = stateComplaints.length;
-  const activeIssuesCount = stateComplaints.filter(c => c.status !== 'resolved').length;
-  const resolvedIssuesCount = stateComplaints.filter(c => c.status === 'resolved').length;
-  
-  // Public sentiment index based on severity
-  const activeClusters = stateClusters.filter(c => c.status !== 'resolved');
-  const highSeverityCount = activeClusters.filter(c => parseFloat(c.severity_score) >= 7.5).length;
-  const publicSentiment = highSeverityCount > 2 ? '🔴 Highly Frustrated' : highSeverityCount >= 1 ? '🟡 Concerned' : '🟢 Satisfied';
-
-=======
->>>>>>> 00afb3cd1bbb16be7d6e127dcc0d1761d337c30b
   // SVG Heatmap Ward Configs
   const wardsConfig = [
     { id: 'w4', name: 'Ward 4 - Andheri East', pathName: 'Andheri East', x: 20, y: 20, w: 200, h: 100 },
@@ -128,27 +78,27 @@ export default function AdminDashboard() {
     const maxLat = 19.16;
     const minLng = 72.82;
     const maxLng = 72.90;
-    
+
     const width = 460;
     const height = 260;
-    
+
     const latitude = parseFloat(lat) || 19.1155;
     const longitude = parseFloat(lng) || 72.8755;
-    
+
     const x = ((longitude - minLng) / (maxLng - minLng)) * width;
     const y = height - ((latitude - minLat) / (maxLat - minLat)) * height;
-    
+
     // Bound positions within map container padding
-    return { 
-      x: Math.max(25, Math.min(width - 25, x)), 
-      y: Math.max(25, Math.min(height - 25, y)) 
+    return {
+      x: Math.max(25, Math.min(width - 25, x)),
+      y: Math.max(25, Math.min(height - 25, y))
     };
   };
 
   const getWardColorClass = (wardName) => {
     const wardClusters = clusters.filter(c => c.ward === wardName && c.status !== 'resolved');
     if (wardClusters.length === 0) return 'fill-emerald-50 bg-emerald-50/10 stroke-emerald-500/40 hover:fill-emerald-100/50';
-    
+
     const maxSeverity = Math.max(...wardClusters.map(c => parseFloat(c.severity_score)));
     if (maxSeverity >= 7.5) return 'fill-red-50 bg-red-50/10 stroke-red-500/40 hover:fill-red-100/50';
     if (maxSeverity >= 5.0) return 'fill-orange-50 bg-orange-50/10 stroke-orange-500/40 hover:fill-orange-100/50';
@@ -182,7 +132,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-700 flex flex-col md:flex-row relative overflow-hidden">
-      
+
       {/* Background glow orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-blue-500/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-cyan-500/5 blur-[120px] pointer-events-none" />
@@ -271,11 +221,11 @@ export default function AdminDashboard() {
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-grow p-6 md:p-8 overflow-y-auto w-full z-10">
-        
+
         {/* TAB 1: COMMAND CENTER (DASHBOARD & HEATMAP) */}
         {adminTab === 'dashboard' && (
           <div className="space-y-6">
-            
+
             {/* Header */}
             <div className="flex justify-between items-center border-b border-slate-200 pb-5">
               <div>
@@ -293,7 +243,7 @@ export default function AdminDashboard() {
               <span className="text-sm font-bold text-slate-500 flex items-center">
                 <Layers className="w-4 h-4 mr-2" /> Global Filters:
               </span>
-              <select 
+              <select
                 className="bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-1.5 font-medium text-slate-700 outline-none focus:border-blue-500"
                 value={selectedDistrict}
                 onChange={(e) => setSelectedDistrict(e.target.value)}
@@ -301,8 +251,8 @@ export default function AdminDashboard() {
                 <option value="All">All Districts</option>
                 {adminFiltersData.districts?.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
-              
-              <select 
+
+              <select
                 className="bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-1.5 font-medium text-slate-700 outline-none focus:border-blue-500"
                 value={selectedWardFilter}
                 onChange={(e) => setSelectedWardFilter(e.target.value)}
@@ -311,7 +261,7 @@ export default function AdminDashboard() {
                 {adminFiltersData.wards?.map(w => <option key={w} value={w}>{w}</option>)}
               </select>
 
-              <select 
+              <select
                 className="bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-1.5 font-medium text-slate-700 outline-none focus:border-blue-500"
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
@@ -344,7 +294,7 @@ export default function AdminDashboard() {
 
             {/* Heatmap & Map Legend Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
+
               {/* Interactive SVG Heatmap with projected coordinates overlays */}
               <div className="bg-white p-6 rounded-2xl border border-slate-200 lg:col-span-2 space-y-4 shadow-sm">
                 <div className="flex justify-between items-center">
@@ -353,16 +303,16 @@ export default function AdminDashboard() {
                     📍 {adminState} Boundaries
                   </span>
                 </div>
-                
+
                 {/* SVG Rendered Map */}
                 <div className="relative">
                   <svg viewBox="0 0 460 260" className="w-full h-auto max-h-72 border border-slate-200 rounded-xl bg-slate-50 p-2 shadow-inner">
                     {/* Wards/Districts boundaries base */}
                     {wardsConfig.map((wardItem) => {
                       const colorClass = getWardColorClass(wardItem.name);
-                      
+
                       return (
-                        <g 
+                        <g
                           key={wardItem.id}
                           onMouseEnter={() => setHoveredWard(wardItem.name)}
                           onMouseLeave={() => setHoveredWard(null)}
@@ -396,10 +346,10 @@ export default function AdminDashboard() {
                     {activeClusters.map((cluster) => {
                       const { x, y } = projectCoordinates(cluster.center_latitude, cluster.center_longitude);
                       const isCritical = parseFloat(cluster.severity_score) >= 7.5;
-                      
+
                       return (
-                        <g 
-                          key={cluster.id} 
+                        <g
+                          key={cluster.id}
                           className="cursor-pointer group/pin"
                           onClick={() => {
                             setExpandedClusterId(cluster.id);
@@ -473,7 +423,7 @@ export default function AdminDashboard() {
               {/* Side Panel: Urgent Issues */}
               <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4 shadow-sm">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Immediate Action Alerts</h3>
-                
+
                 <div className="space-y-3">
                   {activeClusters.slice(0, 2).map((alert) => (
                     <div key={alert.id} className="bg-slate-50 p-4 rounded-xl border border-red-150 relative text-slate-700 shadow-sm">
@@ -482,7 +432,7 @@ export default function AdminDashboard() {
                       </span>
                       <h4 className="text-xs font-bold text-slate-800 pr-12 capitalize">{alert.title}</h4>
                       <p className="text-[10px] text-slate-500 mt-1 capitalize">Category: {alert.category} · Ward: {alert.ward?.split(' - ')[1]}</p>
-                      
+
                       <div className="mt-2.5 pt-2.5 border-t border-slate-200/50 flex justify-between items-center text-[10px]">
                         <span className="font-semibold text-slate-500">👥 {alert.mentions_count} citizens affected</span>
                         <button
@@ -533,12 +483,12 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               {filteredClusters.map((cluster) => {
                 const isExpanded = expandedClusterId === cluster.id;
-                
+
                 return (
                   <div key={cluster.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all duration-350">
-                    
+
                     {/* Collapsed Header */}
-                    <div 
+                    <div
                       onClick={() => setExpandedClusterId(isExpanded ? null : cluster.id)}
                       className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer hover:bg-slate-50/50"
                     >
@@ -572,7 +522,7 @@ export default function AdminDashboard() {
                     {/* Expanded Detail Panel */}
                     {isExpanded && (
                       <div className="p-6 border-t border-slate-100 bg-slate-50/50 space-y-6">
-                        
+
                         {/* Summary Block */}
                         <div className="bg-white p-4.5 rounded-2xl border border-slate-200 shadow-inner">
                           <h4 className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Gemini Compiled AI Summary</h4>
@@ -661,7 +611,7 @@ export default function AdminDashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              
+
               {/* Column 1: Awaiting Dept */}
               <div className="bg-slate-100/50 p-4 rounded-2xl border border-slate-200/60 flex flex-col space-y-4">
                 <h3 className="text-xs font-black text-red-600 uppercase tracking-wider border-b border-slate-200 pb-2">Awaiting Action</h3>
@@ -723,9 +673,9 @@ export default function AdminDashboard() {
             <div className="flex justify-between items-center border-b border-slate-200 pb-5">
               <div>
                 <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">AI Weekly Briefing</h1>
-                <p className="text-xs text-slate-500 mt-1">Generated by Google Gemini 1.5 Flash compiler on {new Date().toLocaleDateString(undefined, {month: 'long', year: 'numeric'})}</p>
+                <p className="text-xs text-slate-500 mt-1">Generated by Google Gemini 1.5 Flash compiler on {new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p>
               </div>
-              
+
               {/* Actions */}
               <div className="flex space-x-2">
                 <button
