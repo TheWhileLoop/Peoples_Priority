@@ -5,7 +5,7 @@ import {
   Volume2, Play, Pause, Layers
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { useComplaintStore } from '../store/complaintStore';
+import { useComplaintStore, mpDistricts } from '../store/complaintStore';
 
 // Pre-defined sample photos representing civic issues for quick testing/demo
 const samplePhotos = [
@@ -51,7 +51,7 @@ export default function CitizenDashboard() {
   // Form State
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('roads');
-  const [ward, setWard] = useState('Ward 4 - Andheri East');
+  const [district, setDistrict] = useState('Indore');
   const [imageFile, setImageFile] = useState(null);
   const [audioFile, setAudioFile] = useState(null);
   const [photoUrl, setPhotoUrl] = useState(null);
@@ -112,7 +112,7 @@ export default function CitizenDashboard() {
     // Simulate reading GPS location
     setTimeout(() => {
       setIsLocating(false);
-      setWard('Ward 4 - Andheri East');
+      setDistrict('Indore');
     }, 1000);
   };
 
@@ -169,7 +169,7 @@ export default function CitizenDashboard() {
       setIsScanning(true);
       setTimeout(() => {
         setIsScanning(false);
-        setDescription('Reported civic issue at current ward coordinate.');
+        setDescription('Reported civic issue at current district coordinate.');
         setCategory('roads');
       }, 1800);
     }
@@ -182,14 +182,14 @@ export default function CitizenDashboard() {
     setIsSubmitting(true);
     
     // Setup coordinates with slight random offset to scatter markers on the dashboard map
-    const lat = (19.1155 + (Math.random() - 0.5) * 0.04).toFixed(6);
-    const lng = (72.8755 + (Math.random() - 0.5) * 0.04).toFixed(6);
+    const lat = (23.2599 + (Math.random() - 0.5) * 0.04).toFixed(6);
+    const lng = (77.4126 + (Math.random() - 0.5) * 0.04).toFixed(6);
 
     const complaintData = {
       title: `Reported ${category.toUpperCase()}`,
       description: description,
       category: category,
-      ward: ward,
+      district: district,
       latitude: lat,
       longitude: lng,
       image_file: imageFile,
@@ -298,7 +298,7 @@ export default function CitizenDashboard() {
             </div>
             <div className="flex justify-between items-center text-xs">
               <span className="font-bold text-slate-400">LOCATION:</span>
-              <span className="font-bold text-slate-700">{submittedComplaint?.ward || ward}</span>
+              <span className="font-bold text-slate-700">{submittedComplaint?.district || district}</span>
             </div>
           </div>
 
@@ -327,7 +327,7 @@ export default function CitizenDashboard() {
                   </p>
                   <ul className="mt-4 space-y-2.5 text-xs text-white/90">
                     <li className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" /> Auto-GPS Ward Tagging
+                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" /> Auto-GPS District Tagging
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" /> Automatic Department Routing
@@ -341,23 +341,34 @@ export default function CitizenDashboard() {
                 {/* GPS Location widget */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
                   <div className="flex justify-between items-center">
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">GPS Ward Location</h4>
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">GPS District Location</h4>
                     {isLocating && <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />}
                   </div>
-                  <div className="flex items-center space-x-3 bg-slate-50 p-3 rounded-xl border border-slate-200/50">
-                    <MapPin className="text-blue-500 w-5 h-5 shrink-0" />
+                  
+                  <div className="space-y-4">
                     <div>
-                      <p className="text-xs font-bold text-slate-700">{ward}</p>
-                      <p className="text-[10px] text-slate-400">Maharashtra, India</p>
+                      <div className="relative">
+                        <select 
+                          value={district} 
+                          onChange={(e) => setDistrict(e.target.value)}
+                          className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        >
+                          {mpDistricts.map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={handleGPSLocation}
+                      disabled={isLocating}
+                      className="w-full flex items-center justify-center space-x-2 py-2 px-4 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition-all border border-blue-100"
+                    >
+                      <span>{isLocating ? 'Acquiring GPS...' : 'Auto-Detect via GPS'}</span>
+                    </button>
                   </div>
-                  <button
-                    onClick={handleGPSLocation}
-                    type="button"
-                    className="w-full py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl shadow-sm transition-all"
-                  >
-                    Refresh GPS coordinates
-                  </button>
                 </div>
               </div>
 
@@ -596,7 +607,7 @@ export default function CitizenDashboard() {
                                 {new Date(comp.created_at).toLocaleDateString(undefined, {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'})}
                               </span>
                             </div>
-                            <h3 className="text-base font-bold text-slate-800 capitalize mt-2">{comp.category} Issue in {comp.ward}</h3>
+                            <h3 className="text-base font-bold text-slate-800 capitalize mt-2">{comp.category} Issue in {comp.district}</h3>
                             <p className="text-sm text-slate-500 mt-1">{comp.description}</p>
                           </div>
 
