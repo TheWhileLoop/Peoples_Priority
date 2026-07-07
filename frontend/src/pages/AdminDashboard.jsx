@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { useComplaintStore } from '../store/complaintStore';
-import { LayoutDashboard, AlertOctagon, Kanban, Newspaper, LogOut, CheckCircle2, AlertCircle, ThumbsUp, ArrowRight, User, Trash2, Mail, ExternalLink } from 'lucide-react';
+import { useComplaintStore, BASE_URL } from '../store/complaintStore';
+import { 
+  LayoutDashboard, AlertOctagon, Kanban, Newspaper, LogOut, 
+  CheckCircle2, AlertCircle, ThumbsUp, ArrowRight, User, 
+  MapPin, RefreshCw, Send, Layers, HelpCircle
+} from 'lucide-react';
 
 export default function AdminDashboard() {
   const { user, logout } = useAuthStore();
-  const { 
-    complaints, 
+  const {
+    complaints,
     clusters,
     adminStats,
     adminFiltersData,
     weeklySummary,
-    updateClusterStatus, 
+    updateClusterStatus,
     routeClusterDepartment,
     fetchComplaints,
     fetchClusters,
@@ -19,27 +23,47 @@ export default function AdminDashboard() {
     fetchAdminFiltersData,
     fetchWeeklySummary
   } = useComplaintStore();
-  
+
   // Tab/Navigation state
   const [adminTab, setAdminTab] = useState('dashboard'); // 'dashboard' | 'clusters' | 'kanban' | 'weekly'
   const [hoveredWard, setHoveredWard] = useState(null);
+
+  // Global Filters
+  const [selectedDistrict, setSelectedDistrict] = useState('All');
   const [selectedWardFilter, setSelectedWardFilter] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+
   const [expandedClusterId, setExpandedClusterId] = useState(null);
-  
+
   // Weekly briefs
   const [showPdfAlert, setShowPdfAlert] = useState(false);
   const [showWhatsAppAlert, setShowWhatsAppAlert] = useState(false);
 
-  // Statistics calculation based on store data
-  const totalIssuesCount = complaints.length;
-  const activeIssuesCount = complaints.filter(c => c.status !== 'Resolved').length;
-  const resolvedIssuesCount = complaints.filter(c => c.status === 'Resolved').length;
-  
-  // Calculate average sentiment based on severity
-  const highSeverityCount = clusters.filter(c => c.severity_score >= 8.0 && c.status !== 'Resolved').length;
-  const publicSentiment = highSeverityCount > 1 ? '🔴 Highly Frustrated' : highSeverityCount === 1 ? '🟡 Concerned' : '🟢 Satisfied';
+  // Fetch initial data (filters and stats)
+  useEffect(() => {
+    fetchAdminFiltersData();
+    fetchComplaints();
+  }, []);
 
-  // SVG Heatmap Coordinates/Data
+  // Fetch filtered data when filters change
+  useEffect(() => {
+    const filters = {
+      district: selectedDistrict,
+      ward: selectedWardFilter,
+      category: selectedCategory
+    };
+    fetchAdminStats(filters);
+    fetchClusters(filters);
+
+    if (adminTab === 'weekly') {
+      fetchWeeklySummary(filters);
+    }
+  }, [selectedDistrict, selectedWardFilter, selectedCategory, adminTab]);
+
+  // Filter based on Admin's assigned state (default to Maharashtra)
+  const adminState = user?.profile?.state || 'Maharashtra';
+
+  // SVG Heatmap Ward Configs
   const wardsConfig = [
     { id: 'w4', name: 'Ward 4 - Andheri East', pathName: 'Andheri East', x: 20, y: 20, w: 200, h: 100 },
     { id: 'w12', name: 'Ward 12 - Sector 5', pathName: 'Sector 5', x: 240, y: 20, w: 200, h: 100 },
@@ -47,25 +71,49 @@ export default function AdminDashboard() {
     { id: 'w8', name: 'Ward 8 - Sector 3', pathName: 'Sector 3', x: 240, y: 140, w: 200, h: 100 }
   ];
 
-  // Helper to determine ward color based on severity score (10% bg + 30% border for clean pastel style)
+  // Helper projection: maps real lat/lng coordinates to pixel coordinates on the SVG map space
+  const projectCoordinates = (lat, lng) => {
+    // Bounding Box coordinates around Mumbai / Pune area
+    const minLat = 19.07;
+    const maxLat = 19.16;
+    const minLng = 72.82;
+    const maxLng = 72.90;
+
+    const width = 460;
+    const height = 260;
+
+    const latitude = parseFloat(lat) || 19.1155;
+    const longitude = parseFloat(lng) || 72.8755;
+
+    const x = ((longitude - minLng) / (maxLng - minLng)) * width;
+    const y = height - ((latitude - minLat) / (maxLat - minLat)) * height;
+
+    // Bound positions within map container padding
+    return {
+      x: Math.max(25, Math.min(width - 25, x)),
+      y: Math.max(25, Math.min(height - 25, y))
+    };
+  };
+
   const getWardColorClass = (wardName) => {
-    const wardClusters = clusters.filter(c => c.ward === wardName && c.status !== 'Resolved');
+    const wardClusters = clusters.filter(c => c.ward === wardName && c.status !== 'resolved');
     if (wardClusters.length === 0) return 'fill-emerald-50 bg-emerald-50/10 stroke-emerald-500/40 hover:fill-emerald-100/50';
-    
-    const maxSeverity = Math.max(...wardClusters.map(c => c.severity_score));
-    if (maxSeverity >= 8.5) return 'fill-red-50 bg-red-50/10 stroke-red-500/40 hover:fill-red-100/50';
-    if (maxSeverity >= 6.5) return 'fill-orange-55 bg-orange-50/10 stroke-orange-500/40 hover:fill-orange-100/50';
+
+    const maxSeverity = Math.max(...wardClusters.map(c => parseFloat(c.severity_score)));
+    if (maxSeverity >= 7.5) return 'fill-red-50 bg-red-50/10 stroke-red-500/40 hover:fill-red-100/50';
+    if (maxSeverity >= 5.0) return 'fill-orange-50 bg-orange-50/10 stroke-orange-500/40 hover:fill-orange-100/50';
     return 'fill-amber-50 bg-amber-50/10 stroke-amber-500/40 hover:fill-amber-100/50';
   };
 
   const getWardSeverity = (wardName) => {
-    const wardClusters = clusters.filter(c => c.ward === wardName && c.status !== 'Resolved');
+    const wardClusters = clusters.filter(c => c.ward === wardName && c.status !== 'resolved');
     if (wardClusters.length === 0) return '0.0 (Clear)';
-    const maxSeverity = Math.max(...wardClusters.map(c => c.severity_score));
+    const maxSeverity = Math.max(...wardClusters.map(c => parseFloat(c.severity_score)));
     return `${maxSeverity.toFixed(1)}/10`;
   };
 
   const triggerPdfDownload = () => {
+    window.open(`${BASE_URL}/weekly-summary/download-pdf/`, '_blank');
     setShowPdfAlert(true);
     setTimeout(() => setShowPdfAlert(false), 3000);
   };
@@ -85,7 +133,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-700 flex flex-col md:flex-row relative overflow-hidden">
-      
+
       {/* Background glow orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-blue-500/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-cyan-500/5 blur-[120px] pointer-events-none" />
@@ -174,11 +222,11 @@ export default function AdminDashboard() {
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-grow p-6 md:p-8 overflow-y-auto w-full z-10">
-        
+
         {/* TAB 1: COMMAND CENTER (DASHBOARD & HEATMAP) */}
         {adminTab === 'dashboard' && (
           <div className="space-y-6">
-            
+
             {/* Header */}
             <div className="flex justify-between items-center border-b border-slate-200 pb-5">
               <div>
@@ -196,7 +244,7 @@ export default function AdminDashboard() {
               <span className="text-sm font-bold text-slate-500 flex items-center">
                 <Layers className="w-4 h-4 mr-2" /> Global Filters:
               </span>
-              <select 
+              <select
                 className="bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-1.5 font-medium text-slate-700 outline-none focus:border-blue-500"
                 value={selectedDistrict}
                 onChange={(e) => setSelectedDistrict(e.target.value)}
@@ -204,8 +252,8 @@ export default function AdminDashboard() {
                 <option value="All">All Districts</option>
                 {adminFiltersData.districts?.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
-              
-              <select 
+
+              <select
                 className="bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-1.5 font-medium text-slate-700 outline-none focus:border-blue-500"
                 value={selectedWardFilter}
                 onChange={(e) => setSelectedWardFilter(e.target.value)}
@@ -214,7 +262,7 @@ export default function AdminDashboard() {
                 {adminFiltersData.wards?.map(w => <option key={w} value={w}>{w}</option>)}
               </select>
 
-              <select 
+              <select
                 className="bg-slate-50 border border-slate-200 rounded-lg text-sm px-3 py-1.5 font-medium text-slate-700 outline-none focus:border-blue-500"
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
@@ -247,49 +295,49 @@ export default function AdminDashboard() {
 
             {/* Heatmap & Map Legend Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
+
               {/* Interactive SVG Heatmap with projected coordinates overlays */}
               <div className="bg-white p-6 rounded-2xl border border-slate-200 lg:col-span-2 space-y-4 shadow-sm">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Constituency Severity Heatmap</h3>
-                  <span className="text-[10px] bg-bg-elevated px-2.5 py-1 border border-border-1 rounded text-slate-600 font-semibold">
-                    📍 Mumbai Suburbs Division
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Live Hotspot Map View</h3>
+                  <span className="text-[10px] bg-slate-100 px-2.5 py-1 border border-slate-200 rounded text-slate-600 font-semibold flex items-center gap-1">
+                    📍 {adminState} Boundaries
                   </span>
                 </div>
-                
+
                 {/* SVG Rendered Map */}
                 <div className="relative">
-                  <svg viewBox="0 0 460 260" className="w-full h-auto max-h-72 border border-border-1 rounded-xl bg-slate-50/70 p-2 shadow-inner">
+                  <svg viewBox="0 0 460 260" className="w-full h-auto max-h-72 border border-slate-200 rounded-xl bg-slate-50 p-2 shadow-inner">
+                    {/* Wards/Districts boundaries base */}
                     {wardsConfig.map((wardItem) => {
-                      const isActive = hoveredWard === wardItem.name;
                       const colorClass = getWardColorClass(wardItem.name);
-                      
+
                       return (
-                        <g 
-                          key={districtItem.id}
-                          onMouseEnter={() => setHoveredDistrict(districtItem.name)}
-                          onMouseLeave={() => setHoveredDistrict(null)}
+                        <g
+                          key={wardItem.id}
+                          onMouseEnter={() => setHoveredWard(wardItem.name)}
+                          onMouseLeave={() => setHoveredWard(null)}
                           onClick={() => {
-                            setSelectedDistrictFilter(districtItem.name);
+                            setSelectedWardFilter(wardItem.name);
                             setAdminTab('clusters');
                           }}
                           className="cursor-pointer transition-all duration-300 group"
                         >
                           <rect
-                            x={districtItem.x}
-                            y={districtItem.y}
-                            width={districtItem.w}
-                            height={districtItem.h}
+                            x={wardItem.x}
+                            y={wardItem.y}
+                            width={wardItem.w}
+                            height={wardItem.h}
                             rx={12}
                             className={`stroke-2 transition-all duration-300 ${colorClass}`}
                           />
                           <text
                             x={wardItem.x + wardItem.w / 2}
-                            y={wardItem.y + wardItem.h / 2}
+                            y={wardItem.y + 20}
                             textAnchor="middle"
                             className="fill-slate-400 font-bold text-[9px] select-none uppercase tracking-wider"
                           >
-                            {districtItem.pathName}
+                            {wardItem.pathName}
                           </text>
                         </g>
                       );
@@ -299,10 +347,10 @@ export default function AdminDashboard() {
                     {activeClusters.map((cluster) => {
                       const { x, y } = projectCoordinates(cluster.center_latitude, cluster.center_longitude);
                       const isCritical = parseFloat(cluster.severity_score) >= 7.5;
-                      
+
                       return (
-                        <g 
-                          key={cluster.id} 
+                        <g
+                          key={cluster.id}
                           className="cursor-pointer group/pin"
                           onClick={() => {
                             setExpandedClusterId(cluster.id);
@@ -331,23 +379,23 @@ export default function AdminDashboard() {
 
                   {/* Ward Map Tooltip Overlay */}
                   {hoveredWard && (
-                    <div className="absolute top-4 left-4 bg-white border border-border-2 p-4 rounded-xl shadow-xl w-60 z-10 animate-fade-in text-slate-700">
+                    <div className="absolute top-4 left-4 bg-white border border-slate-200 p-4 rounded-xl shadow-xl w-60 z-10 animate-fade-in text-slate-700">
                       <h4 className="text-xs font-bold text-slate-900">{hoveredWard}</h4>
                       <div className="mt-2 space-y-1 text-[11px] text-slate-500">
                         <div className="flex justify-between">
                           <span>Max Severity:</span>
-                          <span className="font-bold text-red-650 text-red-600">{getDistrictSeverity(hoveredDistrict)}</span>
+                          <span className="font-bold text-red-650 text-red-600">{getWardSeverity(hoveredWard)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Active Clusters:</span>
                           <span className="font-bold text-slate-800">
-                            {clusters.filter(c => c.ward === hoveredWard && c.status !== 'Resolved').length}
+                            {activeClusters.filter(c => c.ward === hoveredWard).length}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>Total Complaints:</span>
                           <span className="font-bold text-slate-800">
-                            {complaints.filter(c => c.district === hoveredDistrict).length}
+                            {complaints.filter(c => c.ward === hoveredWard).length}
                           </span>
                         </div>
                       </div>
@@ -376,7 +424,7 @@ export default function AdminDashboard() {
               {/* Side Panel: Urgent Issues */}
               <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4 shadow-sm">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Immediate Action Alerts</h3>
-                
+
                 <div className="space-y-3">
                   {activeClusters.slice(0, 2).map((alert) => (
                     <div key={alert.id} className="bg-slate-50 p-4 rounded-xl border border-red-150 relative text-slate-700 shadow-sm">
@@ -385,7 +433,7 @@ export default function AdminDashboard() {
                       </span>
                       <h4 className="text-xs font-bold text-slate-800 pr-12 capitalize">{alert.title}</h4>
                       <p className="text-[10px] text-slate-500 mt-1 capitalize">Category: {alert.category} · Ward: {alert.ward?.split(' - ')[1]}</p>
-                      
+
                       <div className="mt-2.5 pt-2.5 border-t border-slate-200/50 flex justify-between items-center text-[10px]">
                         <span className="font-semibold text-slate-500">👥 {alert.mentions_count} citizens affected</span>
                         <button
@@ -419,55 +467,43 @@ export default function AdminDashboard() {
                 <p className="text-xs text-slate-500 mt-1">Select an AI group to view citizen feedback & change routing/status</p>
               </div>
 
-              {/* Ward filter selector */}
-              <div className="flex items-center space-x-2">
-                <span className="text-xs font-semibold text-slate-500">Ward:</span>
-                <select
-                  value={selectedWardFilter}
-                  onChange={(e) => setSelectedWardFilter(e.target.value)}
-                  className="bg-bg-card border border-border-1 text-xs px-3 py-1.5 rounded-lg text-slate-700 focus:outline-none shadow-sm"
-                >
-                  <option value="All">All Wards</option>
-                  <option value="Ward 4 - Andheri East">Ward 4 - Andheri East</option>
-                  <option value="Ward 12 - Sector 5">Ward 12 - Sector 5</option>
-                  <option value="Ward 8 - Sector 3">Ward 8 - Sector 3</option>
-                  <option value="Ward 2 - Vile Parle">Ward 2 - Vile Parle</option>
-                </select>
-              </div>
+              {/* Ward Filtering */}
+              <select
+                value={selectedWardFilter}
+                onChange={(e) => setSelectedWardFilter(e.target.value)}
+                className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="All">All Wards / Areas</option>
+                <option value="Ward 4 - Andheri East">Ward 4 - Andheri East</option>
+                <option value="Ward 12 - Sector 5">Ward 12 - Sector 5</option>
+                <option value="Ward 2 - Vile Parle">Ward 2 - Vile Parle</option>
+                <option value="Ward 8 - Sector 3">Ward 8 - Sector 3</option>
+              </select>
             </div>
 
             <div className="space-y-4">
-              {clusters
-                .filter((c) => selectedWardFilter === 'All' || c.ward === selectedWardFilter)
-                .map((cluster, index) => {
-                  const isExpanded = expandedClusterId === cluster.id;
-                  const clusterComplaints = complaints.filter((comp) => cluster.complaint_ids.includes(comp.id));
-                  
-                  return (
-                    <div key={cluster.id} className="bg-bg-card rounded-2xl border border-border-1 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                      
-                      {/* Cluster Summary Row */}
-                      <div
-                        onClick={() => setExpandedClusterId(isExpanded ? null : cluster.id)}
-                        className={`p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 cursor-pointer hover:bg-bg-elevated transition-colors ${isExpanded ? 'bg-bg-elevated/40' : ''}`}
-                      >
-                        <div className="flex items-start space-x-4">
-                          <span className={`h-8 w-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${cluster.status === 'Resolved' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-red-50 text-red-650 border border-red-200'}`}>
-                            #{index + 1}
-                          </span>
-                          <div>
-                            <div className="flex items-center space-x-2.5">
-                              <h3 className="text-md font-bold text-slate-800">{cluster.title}</h3>
-                              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded border ${cluster.status === 'Resolved' ? 'bg-emerald-50 text-emerald-605 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200 animate-pulse'}`}>
-                                {cluster.status}
-                              </span>
-                            </div>
-                            <span className="text-xs text-slate-500 block mt-1">Ward: {cluster.ward} | Dept: {cluster.department}</span>
-                          </div>
-                        </div>
+              {filteredClusters.map((cluster) => {
+                const isExpanded = expandedClusterId === cluster.id;
 
-                        <div className="flex items-center space-x-4 self-end sm:self-center">
-                          <div className="text-right">
+                return (
+                  <div key={cluster.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all duration-350">
+
+                    {/* Collapsed Header */}
+                    <div
+                      onClick={() => setExpandedClusterId(isExpanded ? null : cluster.id)}
+                      className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer hover:bg-slate-50/50"
+                    >
+                      <div className="flex items-start space-x-4">
+                        <div className={`mt-1 h-2.5 w-2.5 rounded-full ${parseFloat(cluster.severity_score) >= 7.5 ? 'bg-red-500 animate-ping' : parseFloat(cluster.severity_score) >= 5.0 ? 'bg-orange-500' : 'bg-amber-500'}`} />
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-wider mr-2">{cluster.category}</span>
+                          <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-wider">{cluster.ward}</span>
+                          <h3 className="text-base font-bold text-slate-800 mt-2 capitalize">{cluster.title}</h3>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-4 self-end sm:self-center">
+                        <div className="text-right">
                           <span className="text-[10px] font-bold text-slate-400 block uppercase">Severity</span>
                           <span className="text-sm font-black text-red-600">{parseFloat(cluster.severity_score).toFixed(1)}/10</span>
                         </div>
@@ -487,7 +523,7 @@ export default function AdminDashboard() {
                     {/* Expanded Detail Panel */}
                     {isExpanded && (
                       <div className="p-6 border-t border-slate-100 bg-slate-50/50 space-y-6">
-                        
+
                         {/* Summary Block */}
                         <div className="bg-white p-4.5 rounded-2xl border border-slate-200 shadow-inner">
                           <h4 className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Gemini Compiled AI Summary</h4>
@@ -576,140 +612,55 @@ export default function AdminDashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              
-              {/* PWD Column */}
-              <div className="bg-slate-100/50 p-4 rounded-2xl border border-slate-200/80 space-y-4">
-                <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                  <span className="text-xs font-black text-slate-700 tracking-wider">CIVIL (PWD)</span>
-                  <span className="bg-white border border-cyan-150 px-2 py-0.5 text-xs rounded text-cyan-600 font-bold shadow-sm">
-                    {clusters.filter(c => c.department === 'PWD' && c.status !== 'Resolved').length}
-                  </span>
-                </div>
-                <div className="space-y-3 min-h-[300px]">
-                  {clusters
-                    .filter((c) => c.department === 'PWD' && c.status !== 'Resolved')
-                    .map((item) => (
-                      <div key={item.id} className="bg-white p-4 rounded-xl border border-slate-200/70 hover:border-slate-300 shadow-sm hover:shadow transition-all space-y-3">
-                        <span className="text-[9px] font-black bg-red-50 text-red-600 px-2 py-0.5 rounded border border-red-200">
-                          Severity {item.severity_score}
-                        </span>
-                        <h4 className="text-xs font-bold text-slate-800">{item.title}</h4>
-                        <p className="text-[10px] text-slate-450 leading-normal">{item.ward}</p>
-                        
-                        <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                          <span className="text-[10px] text-slate-400 font-bold">👥 {item.mentions} Reports</span>
-                          <button
-                            onClick={() => routeClusterDepartment(item.id, 'Jal Board')}
-                            className="text-[10px] text-signal-500 font-bold hover:underline flex items-center animate-pulse"
-                          >
-                            <span>Route Water</span>
-                            <ArrowRight className="w-3 h-3 ml-0.5" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+
+              {/* Column 1: Awaiting Dept */}
+              <div className="bg-slate-100/50 p-4 rounded-2xl border border-slate-200/60 flex flex-col space-y-4">
+                <h3 className="text-xs font-black text-red-600 uppercase tracking-wider border-b border-slate-200 pb-2">Awaiting Action</h3>
+                <div className="space-y-3 flex-grow">
+                  {clusters.filter(c => c.status === 'pending_ai').map(cluster => (
+                    <div key={cluster.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                      <span className="text-[8px] font-bold text-red-650 bg-red-50 border border-red-100 px-1.5 py-0.5 rounded uppercase">CRITICAL</span>
+                      <h4 className="text-xs font-bold text-slate-800 capitalize">{cluster.title}</h4>
+                      <p className="text-[9px] text-slate-450">{cluster.ward}</p>
+                    </div>
+                  ))}
+                  {clusters.filter(c => c.status === 'pending_ai').length === 0 && (
+                    <p className="text-[10px] text-slate-400 italic text-center py-8">Clean box. No pending pipeline items.</p>
+                  )}
                 </div>
               </div>
 
-              {/* Jal Board Column */}
-              <div className="bg-slate-100/50 p-4 rounded-2xl border border-slate-200/80 space-y-4">
-                <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                  <span className="text-xs font-black text-slate-700 tracking-wider">WATER (JAL BOARD)</span>
-                  <span className="bg-white border border-cyan-150 px-2 py-0.5 text-xs rounded text-cyan-600 font-bold shadow-sm">
-                    {clusters.filter(c => c.department === 'Jal Board' && c.status !== 'Resolved').length}
-                  </span>
-                </div>
-                <div className="space-y-3 min-h-[300px]">
-                  {clusters
-                    .filter((c) => c.department === 'Jal Board' && c.status !== 'Resolved')
-                    .map((item) => (
-                      <div key={item.id} className="bg-white p-4 rounded-xl border border-slate-200/70 hover:border-slate-300 shadow-sm hover:shadow transition-all space-y-3">
-                        <span className="text-[9px] font-black bg-red-50 text-red-650 px-2 py-0.5 rounded border border-red-200">
-                          Severity {item.severity_score}
-                        </span>
-                        <h4 className="text-xs font-bold text-slate-800">{item.title}</h4>
-                        <p className="text-[10px] text-slate-455 leading-normal">{item.ward}</p>
-                        
-                        <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                          <span className="text-[10px] text-slate-400 font-bold">👥 {item.mentions} Reports</span>
-                          <button
-                            onClick={() => routeClusterDepartment(item.id, 'Waste Management')}
-                            className="text-[10px] text-signal-500 font-bold hover:underline flex items-center animate-pulse"
-                          >
-                            <span>Route Trash</span>
-                            <ArrowRight className="w-3 h-3 ml-0.5" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+              {/* Column 2: In Progress */}
+              <div className="bg-slate-100/50 p-4 rounded-2xl border border-slate-200/60 flex flex-col space-y-4">
+                <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b border-slate-200 pb-2">In Progress</h3>
+                <div className="space-y-3 flex-grow">
+                  {clusters.filter(c => c.status === 'in_progress' || c.status === 'pending_dept').map(cluster => (
+                    <div key={cluster.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                      <span className="text-[8px] font-bold text-orange-700 bg-orange-50 border border-orange-100 px-1.5 py-0.5 rounded uppercase">Routed: {cluster.department || 'General'}</span>
+                      <h4 className="text-xs font-bold text-slate-800 capitalize">{cluster.title}</h4>
+                      <p className="text-[9px] text-slate-450">{cluster.ward}</p>
+                    </div>
+                  ))}
+                  {clusters.filter(c => c.status === 'in_progress' || c.status === 'pending_dept').length === 0 && (
+                    <p className="text-[10px] text-slate-400 italic text-center py-8">No current tasks in progress.</p>
+                  )}
                 </div>
               </div>
 
-              {/* Waste Management Column */}
-              <div className="bg-slate-100/50 p-4 rounded-2xl border border-slate-200/80 space-y-4">
-                <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                  <span className="text-xs font-black text-slate-700 tracking-wider">SOLID WASTE (MC)</span>
-                  <span className="bg-white border border-cyan-150 px-2 py-0.5 text-xs rounded text-cyan-600 font-bold shadow-sm">
-                    {clusters.filter(c => c.department === 'Waste Management' && c.status !== 'Resolved').length}
-                  </span>
-                </div>
-                <div className="space-y-3 min-h-[300px]">
-                  {clusters
-                    .filter((c) => c.department === 'Waste Management' && c.status !== 'Resolved')
-                    .map((item) => (
-                      <div key={item.id} className="bg-white p-4 rounded-xl border border-slate-200/70 hover:border-slate-300 shadow-sm hover:shadow transition-all space-y-3">
-                        <span className="text-[9px] font-black bg-red-50 text-red-650 px-2 py-0.5 rounded border border-red-200">
-                          Severity {item.severity_score}
-                        </span>
-                        <h4 className="text-xs font-bold text-slate-800">{item.title}</h4>
-                        <p className="text-[10px] text-slate-455 leading-normal">{item.ward}</p>
-                        
-                        <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                          <span className="text-[10px] text-slate-400 font-bold">👥 {item.mentions} Reports</span>
-                          <button
-                            onClick={() => routeClusterDepartment(item.id, 'Electricity Board')}
-                            className="text-[10px] text-signal-500 font-bold hover:underline flex items-center animate-pulse"
-                          >
-                            <span>Route Power</span>
-                            <ArrowRight className="w-3 h-3 ml-0.5" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-
-              {/* Electricity Board Column */}
-              <div className="bg-slate-100/50 p-4 rounded-2xl border border-slate-200/80 space-y-4">
-                <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                  <span className="text-xs font-black text-slate-700 tracking-wider">POWER (ELECTRICITY)</span>
-                  <span className="bg-white border border-cyan-150 px-2 py-0.5 text-xs rounded text-cyan-600 font-bold shadow-sm">
-                    {clusters.filter(c => c.department === 'Electricity Board' && c.status !== 'Resolved').length}
-                  </span>
-                </div>
-                <div className="space-y-3 min-h-[300px]">
-                  {clusters
-                    .filter((c) => c.department === 'Electricity Board' && c.status !== 'Resolved')
-                    .map((item) => (
-                      <div key={item.id} className="bg-white p-4 rounded-xl border border-slate-200/70 hover:border-slate-300 shadow-sm hover:shadow transition-all space-y-3">
-                        <span className="text-[9px] font-black bg-red-50 text-red-650 px-2 py-0.5 rounded border border-red-200">
-                          Severity {item.severity_score}
-                        </span>
-                        <h4 className="text-xs font-bold text-slate-800">{item.title}</h4>
-                        <p className="text-[10px] text-slate-455 leading-normal">{item.ward}</p>
-                        
-                        <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                          <span className="text-[10px] text-slate-400 font-bold">👥 {item.mentions} Reports</span>
-                          <button
-                            onClick={() => routeClusterDepartment(item.id, 'PWD')}
-                            className="text-[10px] text-signal-500 font-bold hover:underline flex items-center animate-pulse"
-                          >
-                            <span>Route PWD</span>
-                            <ArrowRight className="w-3 h-3 ml-0.5" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+              {/* Column 3: Resolved */}
+              <div className="bg-slate-100/50 p-4 rounded-2xl border border-slate-200/60 flex flex-col space-y-4">
+                <h3 className="text-xs font-black text-emerald-600 uppercase tracking-wider border-b border-slate-200 pb-2">Resolved</h3>
+                <div className="space-y-3 flex-grow">
+                  {clusters.filter(c => c.status === 'resolved').map(cluster => (
+                    <div key={cluster.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                      <span className="text-[8px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded uppercase">COMPLETED</span>
+                      <h4 className="text-xs font-bold text-slate-850 line-through capitalize">{cluster.title}</h4>
+                      <p className="text-[9px] text-slate-400">{cluster.ward}</p>
+                    </div>
+                  ))}
+                  {clusters.filter(c => c.status === 'resolved').length === 0 && (
+                    <p className="text-[10px] text-slate-400 italic text-center py-8">No resolved items recorded.</p>
+                  )}
                 </div>
               </div>
 
@@ -723,9 +674,9 @@ export default function AdminDashboard() {
             <div className="flex justify-between items-center border-b border-slate-200 pb-5">
               <div>
                 <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">AI Weekly Briefing</h1>
-                <p className="text-xs text-slate-500 mt-1">Generated by Google Gemini 1.5 Flash compiler on {new Date().toLocaleDateString(undefined, {month: 'long', year: 'numeric'})}</p>
+                <p className="text-xs text-slate-500 mt-1">Generated by Google Gemini 1.5 Flash compiler on {new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p>
               </div>
-              
+
               {/* Actions */}
               <div className="flex space-x-2">
                 <button
@@ -756,9 +707,26 @@ export default function AdminDashboard() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                   <p className="text-slate-500 font-bold animate-pulse">Gemini AI is analyzing constituency data...</p>
                 </div>
+              ) : weeklySummary.error ? (
+                <div className="text-red-500 text-center py-8 font-semibold">{weeklySummary.error}</div>
               ) : (
-                <div className="text-slate-600 whitespace-pre-wrap leading-relaxed">
-                  {weeklySummary}
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-blue-900 font-bold uppercase text-xs tracking-wider mb-2">Executive Summary</h3>
+                    <p className="text-slate-600 leading-relaxed bg-blue-50/50 p-4 rounded-xl border border-blue-100">{weeklySummary.executive_summary}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-red-900 font-bold uppercase text-xs tracking-wider mb-2 flex items-center gap-1.5">
+                      <AlertOctagon className="w-4 h-4 text-red-500" /> Critical Bottleneck
+                    </h3>
+                    <p className="text-slate-600 leading-relaxed bg-red-50/50 p-4 rounded-xl border border-red-100">{weeklySummary.critical_bottleneck}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-emerald-900 font-bold uppercase text-xs tracking-wider mb-2 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Successful Resolution
+                    </h3>
+                    <p className="text-slate-600 leading-relaxed bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">{weeklySummary.successful_resolution}</p>
+                  </div>
                 </div>
               )}
             </div>

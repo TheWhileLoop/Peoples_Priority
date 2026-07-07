@@ -1,11 +1,7 @@
 import { create } from 'zustand';
 import axios from 'axios';
 
-// Pre-filled mock complaints to make the dashboard look populated and real
-const initialComplaints = [];
-const initialClusters = [];
-
-const BASE_URL = 'http://localhost:8000/api';
+export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 const getHeaders = () => {
   const token = localStorage.getItem('token');
@@ -60,10 +56,10 @@ export const useComplaintStore = create((set, get) => ({
       if (filters.district && filters.district !== 'All') params.append('district', filters.district);
       
       const res = await axios.get(`${BASE_URL}/weekly-summary/?${params.toString()}`, { headers: getHeaders() });
-      set({ weeklySummary: res.data.summary });
+      set({ weeklySummary: res.data });
     } catch (err) {
       console.error("Error fetching weekly summary", err);
-      set({ weeklySummary: "Error generating AI summary." });
+      set({ weeklySummary: { error: "Error fetching AI summary." } });
     }
   },
 

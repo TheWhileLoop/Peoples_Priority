@@ -148,44 +148,99 @@ def analyze_complaint(request):
 @api_view(['GET'])
 def retrieve_weekly_summary(request):
     """ GET /api/weekly-summary/ """
-    # Fetch issues from last 7 days
-    last_week = timezone.now() - timedelta(days=7)
-    recent_clusters = IssueCluster.objects.filter(created_at__gte=last_week)
+    from .models import WeeklyBriefing
     
-    # Simple hardcoded fallback if Gemini fails or isn't set up
-    fallback_response = {
-        "week_date": timezone.now().strftime("%B %d, %Y"),
-        "executive_summary": "Honorable Member of Parliament, this week your constituency experienced several reported issues.",
-        "critical_bottleneck": f"Found {recent_clusters.count()} active clusters requiring attention.",
-        "successful_resolution": "Ongoing monitoring by the AI engine.",
-        "sentiment_profile": "Mixed sentiment observed."
-    }
+    # Fetch the most recent WeeklyBriefing
+    latest_briefing = WeeklyBriefing.objects.order_by('-created_at').first()
+    
+    if latest_briefing:
+        return Response({
+            "week_date": latest_briefing.week_start_date.strftime("%B %d, %Y"),
+            "executive_summary": latest_briefing.executive_summary,
+            "critical_bottleneck": latest_briefing.critical_bottleneck,
+            "successful_resolution": latest_briefing.successful_resolution,
+            "sentiment_profile": "AI generated analysis complete."
+        })
+    else:
+        # Fallback if no cron job has run yet
+        return Response({
+            "week_date": timezone.now().strftime("%B %d, %Y"),
+            "executive_summary": "Weekly briefing is currently being generated. Please check back later.",
+            "critical_bottleneck": "Cron job has not run yet.",
+            "successful_resolution": "Awaiting first automated report generation.",
+            "sentiment_profile": "N/A"
+        })
 
-    if genai and os.environ.get("GEMINI_API_KEY"):
-        try:
-            client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-            prompt = f"Summarize these {recent_clusters.count()} issues into a weekly report for an MP. Format as JSON with keys: week_date, executive_summary, critical_bottleneck, successful_resolution, sentiment_profile."
-            
-            response = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=prompt,
-                config={'response_mime_type': 'application/json'}
-            )
-            # Parse the JSON response
-            import json
-            ai_data = json.loads(response.text)
-            return Response(ai_data)
-        except Exception as e:
-            fallback_response['error'] = str(e)
-            return Response(fallback_response)
-    
-    return Response(fallback_response)
+from django.http import FileResponse
+import io
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
 
 @api_view(['GET'])
 def download_pdf(request):
     """ GET /api/weekly-summary/download-pdf/ """
-    # Dummy response, normally returns FileResponse
-    return Response({"status": "success", "message": "PDF Download Link Generated", "url": "/media/reports/weekly_report.pdf"})
+    from .models import WeeklyBriefing
+    latest_briefing = WeeklyBriefing.objects.order_by('-created_at').first()
+
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(100, 750, "Executive Grievance Newsletter")
+    
+    p.setFont("Helvetica", 12)
+    if latest_briefing:
+        p.drawString(100, 720, f"Week of: {latest_briefing.week_start_date.strftime('%B %d, %Y')}")
+        
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(100, 680, "Executive Summary:")
+        p.setFont("Helvetica", 10)
+        
+        # Simple text wrapping for PDF
+        text = p.beginText(100, 660)
+        text.setFont("Helvetica", 10)
+        text.setLeading(14)
+        
+        # very basic wrapping
+        import textwrap
+        lines = textwrap.wrap(latest_briefing.executive_summary, width=80)
+        for line in lines:
+            text.textLine(line)
+            
+        p.drawText(text)
+        
+        y_pos = 660 - (len(lines) * 14) - 20
+        
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(100, y_pos, "Critical Bottleneck:")
+        text = p.beginText(100, y_pos - 20)
+        text.setFont("Helvetica", 10)
+        text.setLeading(14)
+        lines = textwrap.wrap(latest_briefing.critical_bottleneck, width=80)
+        for line in lines:
+            text.textLine(line)
+        p.drawText(text)
+        
+        y_pos = (y_pos - 20) - (len(lines) * 14) - 20
+        
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(100, y_pos, "Successful Resolution:")
+        text = p.beginText(100, y_pos - 20)
+        text.setFont("Helvetica", 10)
+        text.setLeading(14)
+        lines = textwrap.wrap(latest_briefing.successful_resolution, width=80)
+        for line in lines:
+            text.textLine(line)
+        p.drawText(text)
+        
+    else:
+        p.drawString(100, 720, "No weekly briefing available.")
+
+    p.showPage()
+    p.save()
+    buffer.seek(0)
+    
+    return FileResponse(buffer, as_attachment=True, filename='executive_newsletter.pdf')
 
 @api_view(['POST'])
 def send_whatsapp(request):

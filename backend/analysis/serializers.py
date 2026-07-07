@@ -10,6 +10,6 @@ class IssueClusterSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'ai_summary', 'category', 'severity_score', 
             'mentions_count', 'sentiment', 'status', 'state', 'district', 
-            'department', 'center_latitude', 'center_longitude', 
+            'ward', 'department', 'center_latitude', 'center_longitude', 
             'action_log', 'created_at', 'updated_at', 'complaints'
         ]
