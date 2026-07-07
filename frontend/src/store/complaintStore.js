@@ -1,7 +1,21 @@
 import { create } from 'zustand';
 import axios from 'axios';
+import { useAuthStore } from './authStore';
 
 export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+// Global interceptor to handle expired or invalid tokens (401 errors)
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      useAuthStore.getState().logout();
+      // Redirect to login if token is invalid
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 const getHeaders = () => {
   const token = localStorage.getItem('token');
