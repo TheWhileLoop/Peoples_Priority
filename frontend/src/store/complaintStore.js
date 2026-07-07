@@ -1,253 +1,254 @@
 import { create } from 'zustand';
+import axios from 'axios';
 
-// Pre-filled mock complaints to make the dashboard look populated and real
-const initialComplaints = [
-  {
-    id: 'c1',
-    text: 'Huge potholes near the main junction in Andheri East. Extremely dangerous at night.',
-    category: 'Roads',
-    ward: 'Ward 4 - Andheri East',
-    latitude: 19.1155,
-    longitude: 72.8755,
-    status: 'Pending',
-    created_at: new Date(Date.now() - 3600000 * 24 * 2).toISOString(), // 2 days ago
-    user: 'citizen@demo.com',
-    type: 'text'
-  },
-  {
-    id: 'c2',
-    text: 'Continuous clean water leaking from the pipe near Sector 5 market. Wasting thousands of liters daily.',
-    category: 'Water Supply',
-    ward: 'Ward 12 - Sector 5',
-    latitude: 19.1200,
-    longitude: 72.8850,
-    status: 'Pending',
-    created_at: new Date(Date.now() - 3600000 * 24 * 3).toISOString(), // 3 days ago
-    user: 'citizen@demo.com',
-    type: 'text'
-  },
-  {
-    id: 'c3',
-    text: 'Garbage dump pile has not been cleared for over a week near the park. Smells horrible.',
-    category: 'Waste Management',
-    ward: 'Ward 2 - Vile Parle',
-    latitude: 19.1000,
-    longitude: 72.8450,
-    status: 'In Progress',
-    created_at: new Date(Date.now() - 3600000 * 12).toISOString(), // 12 hours ago
-    user: 'citizen@demo.com',
-    type: 'photo',
-    media_url: 'https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?auto=format&fit=crop&w=600&q=80'
-  },
-  {
-    id: 'c4',
-    text: 'Streetlights are not functioning on the main highway stretch. High risk of accidents.',
-    category: 'Electricity',
-    ward: 'Ward 8 - Sector 3',
-    latitude: 19.1300,
-    longitude: 72.8600,
-    status: 'Resolved',
-    created_at: new Date(Date.now() - 3600000 * 24 * 5).toISOString(), // 5 days ago
-    user: 'citizen@demo.com',
-    type: 'text'
-  }
-];
+export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-const initialClusters = [
-  {
-    id: 'cl1',
-    title: 'Road Condition in Andheri East',
-    category: 'Roads',
-    severity_score: 9.8,
-    sentiment: 'Highly Negative',
-    status: 'Pending',
-    department: 'PWD',
-    ward: 'Ward 4 - Andheri East',
-    center_latitude: 19.1155,
-    center_longitude: 72.8755,
-    mentions: 450,
-    ai_summary: 'Severe potholes reported on main arterial roads near Andheri East junction causing high traffic delays and nighttime accidents. Rapid action required.',
-    complaint_ids: ['c1']
-  },
-  {
-    id: 'cl2',
-    title: 'Water Pipeline Leakage at Sector 5',
-    category: 'Water Supply',
-    severity_score: 8.5,
-    sentiment: 'Negative',
-    status: 'Pending',
-    department: 'Jal Board',
-    ward: 'Ward 12 - Sector 5',
-    center_latitude: 19.1200,
-    center_longitude: 72.8850,
-    mentions: 210,
-    ai_summary: 'Major clean water pipeline burst in Sector 5 commercial sector resulting in loss of drinking water supply to 200+ households. Residents are highly concerned.',
-    complaint_ids: ['c2']
-  },
-  {
-    id: 'cl3',
-    title: 'Garbage Dump near Central Park',
-    category: 'Waste Management',
-    severity_score: 6.4,
-    sentiment: 'Negative',
-    status: 'In Progress',
-    department: 'Waste Management',
-    ward: 'Ward 2 - Vile Parle',
-    center_latitude: 19.1000,
-    center_longitude: 72.8450,
-    mentions: 95,
-    ai_summary: 'Solid waste accumulation reported outside the municipal park area. Residents smell foul odor. Routed to sanitation team for pickup.',
-    complaint_ids: ['c3']
-  },
-  {
-    id: 'cl4',
-    title: 'Streetlights Failures in Sector 3',
-    category: 'Electricity',
-    severity_score: 7.2,
-    sentiment: 'Neutral',
-    status: 'Resolved',
-    department: 'Electricity Board',
-    ward: 'Ward 8 - Sector 3',
-    center_latitude: 19.1300,
-    center_longitude: 72.8600,
-    mentions: 120,
-    ai_summary: 'Dark spots created on major sub-lanes in Sector 3 due to bulb failure. Local corporation has replaced the wiring and standard LED lights.',
-    complaint_ids: ['c4']
-  }
-];
+const getHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+export const mpDistricts = [
+  "Agar Malwa", "Alirajpur", "Anuppur", "Ashoknagar", "Balaghat", "Barwani", "Betul", "Bhind", "Bhopal",
+  "Burhanpur", "Chhatarpur", "Chhindwara", "Damoh", "Datia", "Dewas", "Dhar", "Dindori", "Guna", "Gwalior",
+  "Harda", "Narmadapuram", "Indore", "Jabalpur", "Jhabua", "Katni", "Khandwa", "Khargone", "Mandla", "Mandsaur",
+  "Morena", "Narsinghpur", "Neemuch", "Niwari", "Panna", "Raisen", "Rajgarh", "Ratlam", "Rewa", "Sagar",
+  "Satna", "Sehore", "Seoni", "Shahdol", "Shajapur", "Sheopur", "Shivpuri", "Sidhi", "Singrauli", "Tikamgarh",
+  "Ujjain", "Umaria", "Vidisha", "Mauganj", "Pandhurna", "Maihar"
+].sort();
 
 export const useComplaintStore = create((set, get) => ({
-  complaints: initialComplaints,
-  clusters: initialClusters,
+  complaints: [],
+  clusters: [],
+  adminStats: { total_ingested_reports: 0, active_clusters: 0, resolved_issues: 0, public_sentiment: 'Loading...' },
+  adminFiltersData: { districts: [], wards: [], categories: [] },
+  weeklySummary: null,
+  loading: false,
+  error: null,
 
-  addComplaint: (newComplaint) => {
-    const id = 'c_' + Math.random().toString(36).substr(2, 9);
-    const complaint = {
-      id,
-      status: 'Pending',
-      created_at: new Date().toISOString(),
-      ...newComplaint
-    };
-
-    set((state) => {
-      // Find matching cluster by category and ward, or create a new one
-      const updatedComplaints = [complaint, ...state.complaints];
-      let updatedClusters = [...state.clusters];
+  fetchAdminStats: async (filters = {}) => {
+    try {
+      const params = new URLSearchParams();
+      if (filters.district && filters.district !== 'All') params.append('district', filters.district);
+      if (filters.ward && filters.ward !== 'All') params.append('ward', filters.ward);
+      if (filters.category && filters.category !== 'All') params.append('category', filters.category);
       
-      const existingClusterIndex = updatedClusters.findIndex(
-        (c) => c.category === complaint.category
-      );
+      const res = await axios.get(`${BASE_URL}/admin/stats/?${params.toString()}`, { headers: getHeaders() });
+      set({ adminStats: res.data });
+    } catch (err) {
+      console.error("Error fetching admin stats", err);
+    }
+  },
 
-      if (existingClusterIndex > -1) {
-        // Update existing cluster
-        const target = updatedClusters[existingClusterIndex];
-        const newMentions = target.mentions + 1;
-        // Increase severity slightly based on new complaint reports
-        const newSeverity = Math.min(10.0, parseFloat((target.severity_score + 0.1).toFixed(1)));
+  fetchAdminFiltersData: async () => {
+    try {
+      const res = await axios.get(`${BASE_URL}/admin/filters/`, { headers: getHeaders() });
+      set({ adminFiltersData: res.data });
+    } catch (err) {
+      console.error("Error fetching admin filters", err);
+    }
+  },
+
+  fetchWeeklySummary: async (filters = {}) => {
+    set({ weeklySummary: null }); // Set to null to show loading state
+    try {
+      const params = new URLSearchParams();
+      if (filters.district && filters.district !== 'All') params.append('district', filters.district);
+      
+      const res = await axios.get(`${BASE_URL}/weekly-summary/?${params.toString()}`, { headers: getHeaders() });
+      set({ weeklySummary: res.data });
+    } catch (err) {
+      console.error("Error fetching weekly summary", err);
+      set({ weeklySummary: { error: "Error fetching AI summary." } });
+    }
+  },
+
+  // Fetch all complaints from DB
+  fetchComplaints: async () => {
+    set({ loading: true, error: null });
+    try {
+      const res = await axios.get(`${BASE_URL}/collect/complaints/`, { headers: getHeaders() });
+      set({ complaints: res.data, loading: false });
+    } catch (err) {
+      console.warn("Backend unreachable, keeping fallback or empty complaints list.");
+      set({ loading: false });
+    }
+  },
+
+  // Fetch all clustered issues from DB
+  fetchClusters: async (filters = {}) => {
+    set({ loading: true, error: null });
+    try {
+      const params = new URLSearchParams();
+      if (filters.district && filters.district !== 'All') params.append('district', filters.district);
+      if (filters.ward && filters.ward !== 'All') params.append('ward', filters.ward);
+      if (filters.category && filters.category !== 'All') params.append('category', filters.category);
+
+      const res = await axios.get(`${BASE_URL}/clusters/?${params.toString()}`, { headers: getHeaders() });
+      set({ clusters: res.data, loading: false });
+    } catch (err) {
+      console.warn("Backend unreachable, keeping fallback or empty clusters list.");
+      set({ loading: false });
+    }
+  },
+
+  // Citizen files a new complaint
+  addComplaint: async (complaintData) => {
+    set({ loading: true, error: null });
+    try {
+      // Create FormData if uploading files
+      const formData = new FormData();
+      Object.keys(complaintData).forEach(key => {
+        if (complaintData[key] !== null && complaintData[key] !== undefined) {
+          formData.append(key, complaintData[key]);
+        }
+      });
+
+      const res = await axios.post(`${BASE_URL}/collect/complaints/`, formData, {
+        headers: {
+          ...getHeaders(),
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      // Refetch to get updated list and newly created/updated clusters
+      await get().fetchComplaints();
+      await get().fetchClusters();
+      
+      set({ loading: false });
+      return res.data;
+    } catch (err) {
+      console.error("Error creating complaint:", err);
+      // Local offline fallback
+      const mockComplaint = {
+        id: 'c_' + Math.random().toString(36).substr(2, 9),
+        title: complaintData.title || 'Civic Complaint',
+        description: complaintData.description,
+        category: complaintData.category || 'other',
+        ward: complaintData.ward || 'Ward 4 - Andheri East',
+        status: 'pending_ai',
+        upvotes_count: 0,
+        created_at: new Date().toISOString(),
+      };
+      
+      set(state => ({
+        complaints: [mockComplaint, ...state.complaints],
+        loading: false
+      }));
+      return mockComplaint;
+    }
+  },
+
+  // Citizen upvotes a complaint
+  upvoteComplaint: async (complaintId) => {
+    try {
+      const res = await axios.post(`${BASE_URL}/collect/complaints/${complaintId}/upvote/`, {}, {
+        headers: getHeaders()
+      });
+
+      // Update complaints locally
+      set(state => {
+        const updatedComplaints = state.complaints.map(c => {
+          if (c.id === complaintId) {
+            return {
+              ...c,
+              upvotes_count: res.data.upvotes_count,
+              is_upvoted: res.data.upvoted
+            };
+          }
+          return c;
+        });
+
+        // Update cluster locally if available
+        const updatedClusters = state.clusters.map(cluster => {
+          const hasComplaint = cluster.complaints?.some(c => c.id === complaintId);
+          if (hasComplaint) {
+            return {
+              ...cluster,
+              mentions_count: res.data.mentions_count,
+              severity_score: res.data.new_severity_score
+            };
+          }
+          return cluster;
+        });
+
+        return {
+          complaints: updatedComplaints,
+          clusters: updatedClusters
+        };
+      });
+      return res.data;
+    } catch (err) {
+      console.error("Error upvoting complaint:", err);
+      // Local fallback
+      set(state => {
+        const updated = state.complaints.map(c => {
+          if (c.id === complaintId) {
+            const added = !c.is_upvoted;
+            return {
+              ...c,
+              upvotes_count: c.upvotes_count + (added ? 1 : -1),
+              is_upvoted: added
+            };
+          }
+          return c;
+        });
+        return { complaints: updated };
+      });
+    }
+  },
+
+  // Admin routes a cluster to a new department
+  routeClusterDepartment: async (clusterId, newDepartment) => {
+    try {
+      const res = await axios.patch(`${BASE_URL}/clusters/${clusterId}/`, {
+        department: newDepartment
+      }, { headers: getHeaders() });
+
+      set(state => ({
+        clusters: state.clusters.map(c => c.id === clusterId ? { ...c, department: res.data.department } : c)
+      }));
+      return res.data;
+    } catch (err) {
+      console.error("Error routing department:", err);
+      // Offline fallback
+      set(state => ({
+        clusters: state.clusters.map(c => c.id === clusterId ? { ...c, department: newDepartment } : c)
+      }));
+    }
+  },
+
+  // Admin changes status of an entire cluster (resolves or sets in progress)
+  updateClusterStatus: async (clusterId, newStatus) => {
+    try {
+      const res = await axios.patch(`${BASE_URL}/clusters/${clusterId}/`, {
+        status: newStatus
+      }, { headers: getHeaders() });
+
+      // Update both clusters and child complaints locally
+      set(state => {
+        const updatedClusters = state.clusters.map(c => c.id === clusterId ? { ...c, status: res.data.status } : c);
+        const targetCluster = state.clusters.find(c => c.id === clusterId);
+        const childIds = targetCluster?.complaints?.map(c => c.id) || [];
         
-        updatedClusters[existingClusterIndex] = {
-          ...target,
-          mentions: newMentions,
-          severity_score: newSeverity,
-          complaint_ids: [...target.complaint_ids, id]
+        const updatedComplaints = state.complaints.map(comp => {
+          if (childIds.includes(comp.id)) {
+            return { ...comp, status: newStatus };
+          }
+          return comp;
+        });
+
+        return {
+          clusters: updatedClusters,
+          complaints: updatedComplaints
         };
-      } else {
-        // Create a new cluster
-        const newClusterId = 'cl_' + Math.random().toString(36).substr(2, 9);
-        const newCluster = {
-          id: newClusterId,
-          title: `Reported ${complaint.category} Issue`,
-          category: complaint.category,
-          severity_score: parseFloat((4.0 + Math.random() * 3.0).toFixed(1)),
-          sentiment: 'Negative',
-          status: 'Pending',
-          department: getDepartmentByCategory(complaint.category),
-          center_latitude: complaint.latitude || 19.1155,
-          center_longitude: complaint.longitude || 72.8755,
-          mentions: 1,
-          ai_summary: `Initial report of ${complaint.category} issues received. AI summary will compile as more citizens report.`,
-          complaint_ids: [id]
-        };
-        updatedClusters.unshift(newCluster);
-      }
-
-      return {
-        complaints: updatedComplaints,
-        clusters: updatedClusters
-      };
-    });
-
-    return complaint;
-  },
-
-  updateClusterStatus: (clusterId, newStatus) => {
-    set((state) => {
-      const updatedClusters = state.clusters.map((cluster) => {
-        if (cluster.id === clusterId) {
-          return { ...cluster, status: newStatus };
-        }
-        return cluster;
       });
-
-      // Cascade status change to complaints in that cluster
-      const targetCluster = state.clusters.find((c) => c.id === clusterId);
-      const updatedComplaints = state.complaints.map((comp) => {
-        if (targetCluster && targetCluster.complaint_ids.includes(comp.id)) {
-          return { ...comp, status: newStatus };
-        }
-        return comp;
-      });
-
-      return {
-        clusters: updatedClusters,
-        complaints: updatedComplaints
-      };
-    });
-  },
-
-  upvoteCluster: (clusterId) => {
-    set((state) => {
-      const updatedClusters = state.clusters.map((cluster) => {
-        if (cluster.id === clusterId) {
-          const newMentions = cluster.mentions + 1;
-          const newSeverity = Math.min(10.0, parseFloat((cluster.severity_score + 0.15).toFixed(2)));
-          return {
-            ...cluster,
-            mentions: newMentions,
-            severity_score: newSeverity
-          };
-        }
-        return cluster;
-      });
-      return { clusters: updatedClusters };
-    });
-  },
-
-  routeClusterDepartment: (clusterId, newDepartment) => {
-    set((state) => {
-      const updatedClusters = state.clusters.map((cluster) => {
-        if (cluster.id === clusterId) {
-          return { ...cluster, department: newDepartment };
-        }
-        return cluster;
-      });
-      return { clusters: updatedClusters };
-    });
+    } catch (err) {
+      console.error("Error updating status:", err);
+      // Offline fallback
+      set(state => ({
+        clusters: state.clusters.map(c => c.id === clusterId ? { ...c, status: newStatus } : c)
+      }));
+    }
   }
 }));
-
-// Helper function to auto-assign department by category
-function getDepartmentByCategory(category) {
-  switch (category) {
-    case 'Roads':
-      return 'PWD';
-    case 'Water Supply':
-      return 'Jal Board';
-    case 'Waste Management':
-      return 'Waste Management';
-    case 'Electricity':
-      return 'Electricity Board';
-    default:
-      return 'General Admin';
-  }
-}
