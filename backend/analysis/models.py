@@ -49,3 +49,13 @@ class AdminAction(models.Model):
 
     def __str__(self):
         return f"{self.admin_user.username} - {self.action_type} on Cluster {self.cluster.id}"
+
+class WeeklyBriefing(models.Model):
+    week_start_date = models.DateField()
+    executive_summary = models.TextField()
+    critical_bottleneck = models.TextField()
+    successful_resolution = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Weekly Briefing for week of {self.week_start_date}"

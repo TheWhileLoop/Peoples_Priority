@@ -98,11 +98,14 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 # Cloudinary Storage Settings
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
     'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
     'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
 }
+
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # CORS Settings
