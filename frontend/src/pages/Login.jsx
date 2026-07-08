@@ -7,7 +7,7 @@ import {
   Home, Loader2, Eye, EyeOff, ChevronDown
 } from 'lucide-react';
 
-const API = 'http://localhost:8000/api/auth';
+const API = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/auth`;
 const INDIA_LOCATION_JSON = 'https://raw.githubusercontent.com/sab99r/Indian-States-And-Districts/master/states-and-districts.json';
 
 // ─── Helper: login user and redirect ────────────────────────────────────────

@@ -52,6 +52,7 @@ export default function CitizenDashboard() {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('roads');
   const [ward, setWard] = useState('Ward 4 - Andheri East');
+  const [coords, setCoords] = useState({ lat: null, lng: null });
   const [imageFile, setImageFile] = useState(null);
   const [audioFile, setAudioFile] = useState(null);
   const [photoUrl, setPhotoUrl] = useState(null);
@@ -106,14 +107,28 @@ export default function CitizenDashboard() {
     }
   }, [showConfirmation]);
 
-  // Fetch GPS Coordinates
+  // Fetch GPS Coordinates using the browser's Geolocation API
   const handleGPSLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser.');
+      return;
+    }
+
     setIsLocating(true);
-    // Simulate reading GPS location
-    setTimeout(() => {
-      setIsLocating(false);
-      setWard('Ward 4 - Andheri East');
-    }, 1000);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setCoords({ lat: latitude, lng: longitude });
+        setIsLocating(false);
+        setWard('Ward 4 - Andheri East');
+        alert(`📍 Your location has been stored!\n\nLatitude: ${latitude.toFixed(6)}\nLongitude: ${longitude.toFixed(6)}`);
+      },
+      (error) => {
+        setIsLocating(false);
+        alert(`Unable to fetch your location: ${error.message}`);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   };
 
   // Simulate Voice Record & create dummy file for Cloudinary upload
@@ -180,10 +195,15 @@ export default function CitizenDashboard() {
     if (!description.trim()) return;
 
     setIsSubmitting(true);
-    
-    // Setup coordinates with slight random offset to scatter markers on the dashboard map
-    const lat = (19.1155 + (Math.random() - 0.5) * 0.04).toFixed(6);
-    const lng = (72.8755 + (Math.random() - 0.5) * 0.04).toFixed(6);
+
+    // Use the real GPS coordinates captured via "Refresh GPS coordinates" if available.
+    // Otherwise fall back to a scattered coordinate near the default ward so the map still has something to show.
+    const lat = coords.lat !== null
+      ? coords.lat.toFixed(6)
+      : (19.1155 + (Math.random() - 0.5) * 0.04).toFixed(6);
+    const lng = coords.lng !== null
+      ? coords.lng.toFixed(6)
+      : (72.8755 + (Math.random() - 0.5) * 0.04).toFixed(6);
 
     const complaintData = {
       title: `Reported ${category.toUpperCase()}`,
@@ -348,7 +368,9 @@ export default function CitizenDashboard() {
                     <MapPin className="text-blue-500 w-5 h-5 shrink-0" />
                     <div>
                       <p className="text-xs font-bold text-slate-700">{ward}</p>
-                      <p className="text-[10px] text-slate-400">Maharashtra, India</p>
+                      <p className="text-[10px] text-slate-400">
+                        {coords.lat !== null ? `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}` : 'Maharashtra, India'}
+                      </p>
                     </div>
                   </div>
                   <button

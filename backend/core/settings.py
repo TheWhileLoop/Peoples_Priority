@@ -41,6 +41,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Serves Django admin/static assets in production
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -68,16 +69,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-# Database Setup (Explicit PostgreSQL Config)
+# Database Setup — driven entirely by DATABASE_URL in the environment (.env locally,
+# real environment variables in production). No credentials are hardcoded here.
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': 'Abhishek2002$@,',
-        'HOST': 'db.mzrgyhjijzmosvmgbknb.supabase.co',
-        'PORT': '5432',
-    }
+    'default': dj_database_url.parse(
+        os.getenv('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=not DEBUG,
+    )
 }
 
 # Password validation
@@ -94,8 +93,9 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
+# Static files (CSS, JavaScript, Images) — served by WhiteNoise in production, after `collectstatic`
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Cloudinary Storage Settings
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
@@ -124,20 +124,16 @@ REST_FRAMEWORK = {
 }
 
 # Celery Configuration
-# Redis is used as the message broker and result backend
+# Redis (or any broker URL) is read from REDIS_URL in the environment — set this to a hosted
+# Redis provider's connection string in production. If CELERY_TASK_ALWAYS_EAGER=True is set in
+# the environment, Celery skips the broker entirely and runs tasks synchronously in-process
+# (no Redis needed at all — see the "no Redis" deployment option).
 CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
-CELERY_TASK_ALWAYS_EAGER = False  # Set to True ONLY for unit testing without Redis
+CELERY_TASK_ALWAYS_EAGER = os.getenv('CELERY_TASK_ALWAYS_EAGER', 'False') == 'True'
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TIMEZONE = 'Asia/Kolkata'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Celery Configuration Options
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-CELERY_ACCEPT_CONTENT = ['application/json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'Asia/Kolkata'

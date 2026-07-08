@@ -1,11 +1,150 @@
 import json
+import math
+from decimal import Decimal
 from datetime import timedelta
 from django.utils import timezone
 from celery import shared_task
 from django.conf import settings
 from .models import IssueCluster, WeeklyBriefing
+from .gemini_service import analyze_civic_complaint
 import google.genai as genai
 from google.genai import types
+
+# Radius used to decide whether a new complaint belongs to an existing cluster.
+# Mirrors the "2km radius" spatial-clustering behavior described in the backend design doc,
+# implemented here in plain Python since PostGIS isn't set up on this database.
+CLUSTER_RADIUS_KM = 2.0
+
+
+def _haversine_km(lat1, lon1, lat2, lon2):
+    """Great-circle distance between two lat/lon points, in kilometers."""
+    R = 6371.0
+    lat1, lon1, lat2, lon2 = (math.radians(float(v)) for v in (lat1, lon1, lat2, lon2))
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    return 2 * R * math.asin(math.sqrt(a))
+
+
+@shared_task(bind=True, max_retries=3)
+def process_complaint_with_ai(self, complaint_id):
+    """
+    Fired by the post_save signal in data_collection/models.py every time a citizen submits a complaint.
+
+    1. Sends the complaint's text/photo/audio to Gemini for category, department, severity & sentiment.
+    2. Matches it to a nearby existing IssueCluster of the same category (within CLUSTER_RADIUS_KM),
+       or creates a new one if nothing nearby exists.
+    3. Writes the AI results back onto the Complaint and updates the cluster's rolling stats.
+    """
+    # Local import avoids a circular import with data_collection.models at module load time.
+    from data_collection.models import Complaint
+
+    try:
+        complaint = Complaint.objects.get(id=complaint_id)
+    except Complaint.DoesNotExist:
+        return f"Complaint {complaint_id} no longer exists."
+
+    image_url = complaint.image_file.url if complaint.image_file else None
+    audio_url = complaint.audio_file.url if complaint.audio_file else None
+
+    try:
+        result = analyze_civic_complaint(
+            description=complaint.description,
+            image_url=image_url,
+            audio_url=audio_url,
+        )
+    except Exception as exc:
+        error_str = str(exc)
+        is_rate_limited = '429' in error_str or 'RESOURCE_EXHAUSTED' in error_str
+
+        if is_rate_limited and self.request.retries < self.max_retries:
+            # Gemini rate-limited/quota-exhausted us — back off and let Celery retry this exact
+            # complaint later instead of permanently mislabeling it with placeholder values.
+            raise self.retry(exc=exc, countdown=45)
+
+        # Either a non-rate-limit error, or we've already retried the max number of times:
+        # fall back to safe defaults so the complaint doesn't stay stuck unprocessed forever.
+        result = {
+            "category": complaint.category or "other",
+            "department": "Collectorate Office",
+            "severity_score": 3.0,
+            "sentiment": "Concerned",
+            "ai_summary": complaint.description[:100] if complaint.description else "New civic complaint submitted.",
+        }
+
+    category = result.get('category') or complaint.category or 'other'
+    department = result.get('department', 'Collectorate Office')
+    try:
+        severity_score = Decimal(str(result.get('severity_score', 3.0)))
+    except Exception:
+        severity_score = Decimal('3.0')
+    sentiment = result.get('sentiment', 'Concerned')
+    ai_summary = result.get('ai_summary') or (complaint.description[:150] if complaint.description else 'New civic complaint.')
+
+    # ── Find a nearby cluster of the same category, or create a new one ──
+    cluster = None
+    if complaint.latitude is not None and complaint.longitude is not None:
+        candidates = IssueCluster.objects.filter(category=category).exclude(status='resolved')
+        for candidate in candidates:
+            if candidate.center_latitude is None or candidate.center_longitude is None:
+                continue
+            distance = _haversine_km(
+                complaint.latitude, complaint.longitude,
+                candidate.center_latitude, candidate.center_longitude
+            )
+            if distance <= CLUSTER_RADIUS_KM:
+                cluster = candidate
+                break
+
+    if cluster is None:
+        cluster = IssueCluster.objects.create(
+            title=(ai_summary[:255] if ai_summary else f"{category.title()} issue reported"),
+            ai_summary=ai_summary,
+            category=category,
+            severity_score=severity_score,
+            mentions_count=1,
+            sentiment=sentiment,
+            status='pending_dept',
+            district=complaint.district,
+            city=complaint.city,
+            ward=complaint.ward,
+            department=department,
+            center_latitude=complaint.latitude,
+            center_longitude=complaint.longitude,
+            action_log=[{
+                "action": "cluster_created",
+                "complaint_id": complaint.id,
+                "severity": float(severity_score),
+            }],
+        )
+    else:
+        cluster_complaints = list(cluster.complaints.all()) + [complaint]
+        lats = [c.latitude for c in cluster_complaints if c.latitude is not None]
+        lngs = [c.longitude for c in cluster_complaints if c.longitude is not None]
+        if lats:
+            cluster.center_latitude = sum(lats) / len(lats)
+        if lngs:
+            cluster.center_longitude = sum(lngs) / len(lngs)
+
+        cluster.mentions_count = cluster.mentions_count + 1
+        cluster.severity_score = min(max(cluster.severity_score, severity_score) + Decimal('0.1'), Decimal('10.0'))
+        cluster.ai_summary = ai_summary
+        cluster.department = cluster.department or department
+        cluster.action_log.append({
+            "action": "complaint_matched",
+            "complaint_id": complaint.id,
+            "severity": float(severity_score),
+        })
+        cluster.save()
+
+    complaint.ai_category = category
+    complaint.processed_text = ai_summary
+    complaint.status = 'verified'
+    complaint.cluster = cluster
+    complaint.save(update_fields=['ai_category', 'processed_text', 'status', 'cluster'])
+
+    return f"Complaint {complaint.id} analyzed -> cluster {cluster.id} (severity {cluster.severity_score})"
+
 
 @shared_task
 def generate_weekly_briefing():
