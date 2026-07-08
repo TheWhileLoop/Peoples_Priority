@@ -50,7 +50,7 @@ export default function CitizenDashboard() {
   const [category, setCategory] = useState('Roads');
   const [photoUrl, setPhotoUrl] = useState(null);
 
-  // ΓöÇΓöÇΓöÇ FEATURE 1: Real GPS + City Name ΓöÇΓöÇΓöÇ
+  // ===  FEATURE 1: Real GPS + City Name === 
   const [isLocating, setIsLocating] = useState(false);
   const [locationGranted, setLocationGranted] = useState(false);
   const [locationCoords, setLocationCoords] = useState(null);
@@ -76,7 +76,7 @@ export default function CitizenDashboard() {
     // Simultaneously trigger the browser's native permission popup
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        // Browser granted ΓÇö move to fetching city
+        // Browser granted  -  move to fetching city
         setLocationModalStatus('fetching');
         const { latitude, longitude } = position.coords;
         setLocationCoords({ lat: latitude, lon: longitude });
@@ -113,7 +113,7 @@ export default function CitizenDashboard() {
     );
   };
 
-  // ΓöÇΓöÇΓöÇ FEATURE 2: Real Audio Recording ΓöÇΓöÇ
+  // ===  FEATURE 2: Real Audio Recording == 
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [audioBlob, setAudioBlob] = useState(null);
@@ -173,7 +173,7 @@ export default function CitizenDashboard() {
     setLocationRequiredMsg('');
   };
 
-  // ΓöÇΓöÇΓöÇ FEATURE 3: Photo Upload (polished) 
+  // ===  FEATURE 3: Photo Upload (polished) 
   const [isScanning, setIsScanning] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -208,7 +208,7 @@ export default function CitizenDashboard() {
     processPhotoFile(e.dataTransfer.files[0]);
   };
 
-  // ΓöÇΓöÇΓöÇ FEATURE 4: ChatGPT-style Inline Voice (Web Speech API) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ===  FEATURE 4: ChatGPT-style Inline Voice (Web Speech API) === === === === === 
   const [isSpeechListening, setIsSpeechListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   const speechRecognitionRef = useRef(null);
@@ -256,7 +256,7 @@ export default function CitizenDashboard() {
     }
   };
 
-  // ΓöÇΓöÇΓöÇ Submission Logic ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ===  Submission Logic === === === === === === 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [submittedComplaint, setSubmittedComplaint] = useState(null);
@@ -342,7 +342,7 @@ export default function CitizenDashboard() {
     (c) => c.user === (user?.email || 'guest@demo.com')
   );
 
-  // ΓöÇΓöÇΓöÇ Render ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // === Render ===
   return (
     <div className="relative min-h-[90vh] pb-20">
       {/* Dynamic Premium Background */}
@@ -353,13 +353,13 @@ export default function CitizenDashboard() {
       <div className="bg-gradient-to-r from-indigo-600 to-blue-500 text-white py-2 shadow-md">
         {/* eslint-disable-next-line jsx-a11y/no-distracting-elements */}
         <marquee className="text-sm font-bold tracking-widest uppercase" scrollamount="6">
-          Γ£¿ Welcome to the {cityName ? `${cityName} ` : ''}Citizen Portal! Report issues, upvote community concerns, and track resolutions in real-time. Γ£¿
+          ✨ Welcome to the {cityName ? `${cityName} ` : ''}Citizen Portal! Report issues, upvote community concerns, and track resolutions in real-time. ✨
         </marquee>
       </div>
 
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 relative">
 
-      {/* ΓöÇΓöÇ Location Permission Modal ΓöÇΓöÇ */}
+      {/* ==  Location Permission Modal ==  */}
       {showLocationModal && (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4" style={{ backdropFilter: 'blur(6px)', backgroundColor: 'rgba(15,23,42,0.55)' }}>
           <div
@@ -426,7 +426,7 @@ export default function CitizenDashboard() {
 
               {locationModalStatus === 'fetching' && (
                 <>
-                  <h2 className="text-xl font-black text-slate-800 text-center mb-1">Location Granted! Γ£à</h2>
+                  <h2 className="text-xl font-black text-slate-800 text-center mb-1">Location Granted! ✅</h2>
                   <p className="text-sm text-slate-500 text-center">Fetching your city name from GPS coordinates...</p>
                   <div className="mt-4 flex items-center justify-center">
                     <div className="flex space-x-1.5">
@@ -440,7 +440,7 @@ export default function CitizenDashboard() {
 
               {locationModalStatus === 'success' && (
                 <>
-                  <h2 className="text-xl font-black text-slate-800 text-center mb-1">Location Detected! ≡ƒÄ»</h2>
+                  <h2 className="text-xl font-black text-slate-800 text-center mb-1">Location Detected! 🎯</h2>
                   <p className="text-sm text-slate-500 text-center mb-4">Your complaint will be accurately filed at:</p>
                   <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center">
                     <p className="text-lg font-black text-emerald-700">{cityName}</p>
@@ -456,12 +456,12 @@ export default function CitizenDashboard() {
 
               {locationModalStatus === 'denied' && (
                 <>
-                  <h2 className="text-xl font-black text-slate-800 text-center mb-1">Permission Denied Γ¥î</h2>
+                  <h2 className="text-xl font-black text-slate-800 text-center mb-1">Permission Denied ❌</h2>
                   <p className="text-sm text-slate-500 text-center mb-4">{locationError || 'Location access was blocked.'}</p>
                   <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-1.5">
                     <p className="text-xs font-bold text-amber-700">How to enable location manually:</p>
-                    <p className="text-xs text-amber-600">1. Click the ≡ƒöÆ lock icon in your browser's address bar</p>
-                    <p className="text-xs text-amber-600">2. Set Location ΓåÆ <strong>Allow</strong></p>
+                    <p className="text-xs text-amber-600">1. Click the 🔒 lock icon in your browser's address bar</p>
+                    <p className="text-xs text-amber-600">2. Set Location → <strong>Allow</strong></p>
                     <p className="text-xs text-amber-600">3. Refresh the page and try again</p>
                   </div>
                   <button
@@ -543,7 +543,7 @@ export default function CitizenDashboard() {
           <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-100 text-emerald-600">
             <CheckCircle className="w-12 h-12" />
           </div>
-          <h2 className="text-3xl font-black text-slate-800 mb-2">Aapki baat receive ho gayi! Γ£à</h2>
+          <h2 className="text-3xl font-black text-slate-800 mb-2">Aapki baat receive ho gayi! ✅</h2>
           <p className="text-slate-500 max-w-md mx-auto mb-6 text-sm">AI processed your issue successfully and routed it to the constituency priority map.</p>
 
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100 text-left mb-8 max-w-md mx-auto">
@@ -552,7 +552,7 @@ export default function CitizenDashboard() {
               <span>AI Severity &amp; Priority Details</span>
             </div>
             <div className="space-y-2 text-slate-700 text-sm">
-              <div className="flex justify-between"><span>Priority Index:</span><span className="font-bold text-red-600">≡ƒöÑ High (Severity 8.9/10)</span></div>
+              <div className="flex justify-between"><span>Priority Index:</span><span className="font-bold text-red-600">🔥 High (Severity 8.9/10)</span></div>
               <div className="flex justify-between"><span>Cluster Assignment:</span><span className="font-bold text-slate-800">{submittedComplaint?.category} Problems</span></div>
               {cityName && <div className="flex justify-between"><span>City:</span><span className="font-bold text-slate-800">{cityName}</span></div>}
               <div className="flex justify-between border-t border-blue-200/50 pt-2 mt-2"><span>Community Upvotes:</span><span className="font-bold text-indigo-700">1 (You) + 340 active mentions</span></div>
@@ -578,7 +578,7 @@ export default function CitizenDashboard() {
               {/* Left Column */}
               <div className="space-y-6 lg:col-span-1">
 
-                {/* ΓöÇΓöÇ FEATURE 1: Location Details Card ΓöÇΓöÇ */}
+                {/* ==  FEATURE 1: Location Details Card ==  */}
                 <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-white/60 shadow-xl shadow-indigo-100/50 relative overflow-hidden group">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl -mr-10 -mt-10 transition-transform duration-700 group-hover:scale-150" />
                   <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center relative z-10">
@@ -629,7 +629,7 @@ export default function CitizenDashboard() {
                       {isLocating ? (
                         <><RefreshCw className="w-3.5 h-3.5 animate-spin" /><span>Acquiring GPS...</span></>
                       ) : locationGranted ? (
-                        <><CheckCircle className="w-3.5 h-3.5" /><span>Location Acquired Γ£ô</span></>
+                        <><CheckCircle className="w-3.5 h-3.5" /><span>Location Acquired ✓</span></>
                       ) : (
                         <><Navigation className="w-3.5 h-3.5" /><span>Auto-Detect via GPS</span></>
                       )}
@@ -664,8 +664,8 @@ export default function CitizenDashboard() {
                   <div className="grid grid-cols-3 gap-3">
                     {[
                       { key: 'voice', icon: <Mic className="w-6 h-6 mb-2" />, label: 'Speak (Voice)' },
-                      { key: 'photo', icon: <Camera className="w-6 h-6 mb-2" />, label: '≡ƒô╕ Snap (Photo)' },
-                      { key: 'text', icon: <FileText className="w-6 h-6 mb-2" />, label: 'Γî¿∩╕Å Type (Text)' },
+                      { key: 'photo', icon: <Camera className="w-6 h-6 mb-2" />, label: '📷 Snap (Photo)' },
+                      { key: 'text', icon: <FileText className="w-6 h-6 mb-2" />, label: '⌨️ Type (Text)' },
                     ].map(({ key, icon, label }) => (
                       <button
                         key={key}
@@ -688,7 +688,7 @@ export default function CitizenDashboard() {
 
                 <form onSubmit={handleFormSubmit} className="space-y-6">
 
-                  {/* ΓöÇΓöÇ FEATURE 2: VOICE TAB ΓöÇΓöÇ */}
+                  {/* ==  FEATURE 2: VOICE TAB ==  */}
                   {reportMethod === 'voice' && (
                     <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200/60 space-y-5">
                       {/* Prompt Text */}
@@ -716,7 +716,7 @@ export default function CitizenDashboard() {
                         ) : audioUrl ? (
                           <div className="flex items-center space-x-2 text-emerald-600 text-xs font-bold">
                             <Volume2 className="w-4 h-4" />
-                            <span>Recording saved ΓÇö listen below</span>
+                            <span>Recording saved  -  listen below</span>
                           </div>
                         ) : (
                           <span className="text-xs text-slate-400">Click the mic button below to start recording</span>
@@ -794,7 +794,7 @@ export default function CitizenDashboard() {
                     </div>
                   )}
 
-                  {/* ΓöÇΓöÇ FEATURE 3: PHOTO TAB ΓöÇΓöÇ */}
+                  {/* ==  FEATURE 3: PHOTO TAB ==  */}
                   {reportMethod === 'photo' && (
                     <div className="space-y-4">
                       <div
@@ -837,7 +837,7 @@ export default function CitizenDashboard() {
                             </div>
                             <div>
                               <p className="text-sm font-semibold text-slate-600">
-                                {isDragging ? '≡ƒôé Drop image here!' : 'Upload photo of the issue'}
+                                {isDragging ? '📂 Drop image here!' : 'Upload photo of the issue'}
                               </p>
                               <p className="text-xs text-slate-400 mt-0.5">Drag & drop or click to browse</p>
                             </div>
@@ -881,7 +881,7 @@ export default function CitizenDashboard() {
                     </div>
                   )}
 
-                  {/* ΓöÇΓöÇ FEATURE 4: TEXT TAB with Inline Voice Icon ΓöÇΓöÇ */}
+                  {/* ==  FEATURE 4: TEXT TAB with Inline Voice Icon ==  */}
                   <div>
                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Issue Description</label>
                     <div className="relative">
@@ -893,14 +893,14 @@ export default function CitizenDashboard() {
                         className="w-full px-4 py-3 pr-12 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none transition-all"
                         placeholder={
                           reportMethod === 'text'
-                            ? 'Write description here, or click the ≡ƒÄñ mic icon to speak...'
+                            ? 'Write description here, or click the 🎙️ mic icon to speak...'
                             : reportMethod === 'voice'
                             ? 'Auto-filled after voice recording...'
                             : 'Auto-filled after photo analysis...'
                         }
                       />
 
-                      {/* ΓöÇΓöÇ ChatGPT-style Inline Voice Icon (TEXT TAB only) ΓöÇΓöÇ */}
+                      {/* ==  ChatGPT-style Inline Voice Icon (TEXT TAB only) ==  */}
                       {reportMethod === 'text' && speechSupported && (
                         <button
                           type="button"
@@ -921,11 +921,11 @@ export default function CitizenDashboard() {
                     {isSpeechListening && reportMethod === 'text' && (
                       <div className="flex items-center space-x-2 mt-2 text-red-500 text-xs font-bold">
                         <span className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
-                        <span>Listening... (Hindi/English) ΓÇö click mic again to stop</span>
+                        <span>Listening... (Hindi/English)  -  click mic again to stop</span>
                       </div>
                     )}
                     {reportMethod === 'text' && !speechSupported && (
-                      <p className="text-xs text-slate-400 mt-1">ΓÜá∩╕Å Voice input not supported in this browser. Try Chrome or Edge.</p>
+                      <p className="text-xs text-slate-400 mt-1">⚠️ Voice input not supported in this browser. Try Chrome or Edge.</p>
                     )}
                   </div>
 
@@ -938,10 +938,10 @@ export default function CitizenDashboard() {
                         onChange={(e) => setCategory(e.target.value)}
                         className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       >
-                        <option value="Roads">≡ƒÜù Roads (Potholes, Repair)</option>
-                        <option value="Water Supply">≡ƒÆº Water Supply (Leak, Sewage)</option>
-                        <option value="Waste Management">≡ƒùæ∩╕Å Waste Management (Trash heap)</option>
-                        <option value="Electricity">≡ƒÆí Electricity (Streetlights)</option>
+                        <option value="Roads">🛣️ Roads (Potholes, Repair)</option>
+                        <option value="Water Supply">💧 Water Supply (Leak, Sewage)</option>
+                        <option value="Waste Management">🗑️ Waste Management (Trash heap)</option>
+                        <option value="Electricity">💡 Electricity (Streetlights)</option>
                       </select>
                     </div>
                     <div>
@@ -1065,7 +1065,7 @@ export default function CitizenDashboard() {
                   <p className="text-xs text-slate-500">Problems reported in your 2km radius. Upvote instead of writing duplicates.</p>
                 </div>
                 <div className="bg-blue-50 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-lg border border-blue-100 self-start">
-                  ≡ƒôî Local area complaints
+                  📌 Local area complaints
                 </div>
               </div>
 
@@ -1092,7 +1092,7 @@ export default function CitizenDashboard() {
                     </div>
 
                     <div className="flex items-center justify-between border-t border-slate-100 pt-5 mt-2 relative z-10">
-                      <span className="text-xs text-slate-400 font-medium">≡ƒæÑ {cluster.mentions} citizens affected</span>
+                      <span className="text-xs text-slate-400 font-medium">👥 {cluster.mentions} citizens affected</span>
                       <button
                         type="button"
                         onClick={() => upvoteComplaint(cluster.complaints?.[0]?.id || cluster.id)}
