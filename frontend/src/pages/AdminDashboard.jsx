@@ -4,7 +4,7 @@ import { useComplaintStore, BASE_URL } from '../store/complaintStore';
 import { 
   LayoutDashboard, AlertOctagon, Kanban, Newspaper, LogOut, 
   CheckCircle2, AlertCircle, ThumbsUp, ArrowRight, User, 
-  MapPin, RefreshCw, Send, Layers, HelpCircle
+  MapPin, RefreshCw, Send, Layers, HelpCircle, Sparkles, Copy, Check
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -17,6 +17,7 @@ export default function AdminDashboard() {
     weeklySummary,
     updateClusterStatus,
     routeClusterDepartment,
+    generateClusterResolution,
     fetchComplaints,
     fetchClusters,
     fetchAdminStats,
@@ -34,6 +35,8 @@ export default function AdminDashboard() {
   const [selectedCategory, setSelectedCategory] = useState('All');
 
   const [expandedClusterId, setExpandedClusterId] = useState(null);
+  const [generatingClusterId, setGeneratingClusterId] = useState(null);
+  const [copiedClusterId, setCopiedClusterId] = useState(null);
 
   // Weekly briefs
   const [showPdfAlert, setShowPdfAlert] = useState(false);
@@ -529,6 +532,84 @@ export default function AdminDashboard() {
                           <h4 className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Gemini Compiled AI Summary</h4>
                           <p className="text-xs text-slate-650 mt-1 italic leading-relaxed">"{cluster.ai_summary}"</p>
                         </div>
+
+                        {/* RAG Resolution Card */}
+                        {cluster.matched_scheme ? (
+                          <div className="bg-gradient-to-r from-blue-50/70 to-indigo-50/70 backdrop-blur-sm border border-blue-200/50 rounded-2xl p-5 shadow-sm space-y-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div className="flex items-center space-x-2">
+                                <Sparkles className="h-4.5 w-4.5 text-blue-600 animate-pulse" />
+                                <h4 className="text-xs font-black text-blue-800 uppercase tracking-wider">AI Actionable Resolution Plan</h4>
+                              </div>
+                              <span className="self-start sm:self-auto text-[10px] font-black uppercase bg-blue-600 text-white px-3 py-1 rounded-full shadow-sm">
+                                Matched Scheme: {cluster.matched_scheme}
+                              </span>
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider block">MP Actionable Guidance</span>
+                              <p className="text-xs font-semibold text-slate-700 leading-relaxed">{cluster.ai_recommendation}</p>
+                            </div>
+                            
+                            <div className="bg-white/80 backdrop-blur-sm border border-slate-200/50 rounded-xl p-4 space-y-2 relative">
+                              <div className="flex justify-between items-center">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Official Department Notice Draft</span>
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(cluster.notice_draft);
+                                    setCopiedClusterId(cluster.id);
+                                    setTimeout(() => setCopiedClusterId(null), 2000);
+                                  }}
+                                  className="text-[10px] font-black text-blue-600 hover:text-blue-800 flex items-center space-x-1 transition-all"
+                                >
+                                  {copiedClusterId === cluster.id ? (
+                                    <>
+                                      <Check className="h-3 w-3 text-emerald-600" />
+                                      <span className="text-emerald-600">Copied!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="h-3 w-3" />
+                                      <span>Copy Notice Draft</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                              <pre className="text-[11px] text-slate-650 whitespace-pre-wrap font-mono max-h-40 overflow-y-auto leading-relaxed border-t border-slate-100 pt-2.5">{cluster.notice_draft}</pre>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center space-y-3">
+                            <Sparkles className="h-7 w-7 text-blue-500/80" />
+                            <div>
+                              <h4 className="text-xs font-bold text-slate-800">Generate Resolution & Scheme Plan</h4>
+                              <p className="text-[11px] text-slate-400 mt-1 max-w-sm">Use Gemini AI to match this cluster with Government Schemes and draft an official notice to the department head.</p>
+                            </div>
+                            {generatingClusterId === cluster.id ? (
+                              <div className="flex items-center space-x-2 text-xs font-bold text-blue-600 animate-pulse py-2">
+                                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                <span>Gemini is scanning schemes & drafting notice...</span>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={async () => {
+                                  setGeneratingClusterId(cluster.id);
+                                  try {
+                                    await generateClusterResolution(cluster.id);
+                                  } catch (err) {
+                                    console.error(err);
+                                  } finally {
+                                    setGeneratingClusterId(null);
+                                  }
+                                }}
+                                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-extrabold text-xs rounded-xl shadow-md shadow-blue-500/10 hover:from-blue-700 hover:to-indigo-700 transition-all hover:scale-102 flex items-center space-x-1.5"
+                              >
+                                <Sparkles className="h-3.5 w-3.5" />
+                                <span>Generate Resolution Plan</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
 
                         {/* Action Control Row */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
