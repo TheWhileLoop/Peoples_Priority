@@ -1,12 +1,35 @@
 import { create } from 'zustand';
 import axios from 'axios';
+import { useAuthStore } from './authStore';
 
 export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+// Global interceptor to handle expired or invalid tokens (401 errors)
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      useAuthStore.getState().logout();
+      // Redirect to login if token is invalid
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 const getHeaders = () => {
   const token = localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
+
+export const mpDistricts = [
+  "Agar Malwa", "Alirajpur", "Anuppur", "Ashoknagar", "Balaghat", "Barwani", "Betul", "Bhind", "Bhopal",
+  "Burhanpur", "Chhatarpur", "Chhindwara", "Damoh", "Datia", "Dewas", "Dhar", "Dindori", "Guna", "Gwalior",
+  "Harda", "Narmadapuram", "Indore", "Jabalpur", "Jhabua", "Katni", "Khandwa", "Khargone", "Mandla", "Mandsaur",
+  "Morena", "Narsinghpur", "Neemuch", "Niwari", "Panna", "Raisen", "Rajgarh", "Ratlam", "Rewa", "Sagar",
+  "Satna", "Sehore", "Seoni", "Shahdol", "Shajapur", "Sheopur", "Shivpuri", "Sidhi", "Singrauli", "Tikamgarh",
+  "Ujjain", "Umaria", "Vidisha", "Mauganj", "Pandhurna", "Maihar"
+].sort();
 
 export const useComplaintStore = create((set, get) => ({
   complaints: [],
