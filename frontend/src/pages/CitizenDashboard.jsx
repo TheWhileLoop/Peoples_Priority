@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Mic, MicOff, Camera, FileText, MapPin, RefreshCw, Send,
   CheckCircle, Clock, AlertCircle, ChevronRight, ThumbsUp,
-  Layers, Trash2, Play, Square, Volume2, Navigation
+  Layers, Trash2, Square, Volume2, Navigation
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useComplaintStore } from '../store/complaintStore';
@@ -34,42 +34,8 @@ const samplePhotos = [
 
 export default function CitizenDashboard() {
   const { user } = useAuthStore();
-  const { 
-    complaints, 
-    clusters, 
-    addComplaint, 
-    upvoteComplaint, 
-    fetchComplaints, 
-    fetchClusters,
-    loading 
-  } = useComplaintStore();
-  
-  // Navigation tabs
-  const [activeTab, setActiveTab] = useState('report'); // 'report' | 'my-issues' | 'community'
-  const [reportMethod, setReportMethod] = useState('text'); // 'text' | 'voice' | 'photo'
-  
-  // Form State
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('roads');
-  const [ward, setWard] = useState('Ward 4 - Andheri East');
-  const [coords, setCoords] = useState({ lat: null, lng: null });
-  const [imageFile, setImageFile] = useState(null);
-  const [audioFile, setAudioFile] = useState(null);
-  const [photoUrl, setPhotoUrl] = useState(null);
-  
-  // Simulated Interactive States
-  const [isLocating, setIsLocating] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Success / Confirmation Screen State
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [submittedComplaint, setSubmittedComplaint] = useState(null);
-  const [confetti, setConfetti] = useState([]);
   const { complaints, clusters, addComplaint, fetchComplaints, fetchClusters, upvoteComplaint } = useComplaintStore();
+
   useEffect(() => {
     fetchComplaints();
     fetchClusters();
@@ -84,7 +50,7 @@ export default function CitizenDashboard() {
   const [category, setCategory] = useState('Roads');
   const [photoUrl, setPhotoUrl] = useState(null);
 
-  // ΓöÇΓöÇΓöÇ FEATURE 1: Real GPS + City Name ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ΓöÇΓöÇΓöÇ FEATURE 1: Real GPS + City Name ΓöÇΓöÇΓöÇ
   const [isLocating, setIsLocating] = useState(false);
   const [locationGranted, setLocationGranted] = useState(false);
   const [locationCoords, setLocationCoords] = useState(null);
@@ -147,7 +113,7 @@ export default function CitizenDashboard() {
     );
   };
 
-  // ΓöÇΓöÇΓöÇ FEATURE 2: Real Audio Recording ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ΓöÇΓöÇΓöÇ FEATURE 2: Real Audio Recording ΓöÇΓöÇ
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [audioBlob, setAudioBlob] = useState(null);
@@ -207,7 +173,7 @@ export default function CitizenDashboard() {
     setLocationRequiredMsg('');
   };
 
-  // ΓöÇΓöÇΓöÇ FEATURE 3: Photo Upload (polished) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ΓöÇΓöÇΓöÇ FEATURE 3: Photo Upload (polished) 
   const [isScanning, setIsScanning] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -290,7 +256,7 @@ export default function CitizenDashboard() {
     }
   };
 
-  // ΓöÇΓöÇΓöÇ Submission Logic ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ΓöÇΓöÇΓöÇ Submission Logic ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [submittedComplaint, setSubmittedComplaint] = useState(null);
@@ -314,88 +280,6 @@ export default function CitizenDashboard() {
     }
   }, [showConfirmation]);
 
-  // Fetch GPS Coordinates using the browser's Geolocation API
-  const handleGPSLocation = () => {
-    if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.');
-      return;
-    }
-
-    setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setCoords({ lat: latitude, lng: longitude });
-        setIsLocating(false);
-        setWard('Ward 4 - Andheri East');
-        alert(`📍 Your location has been stored!\n\nLatitude: ${latitude.toFixed(6)}\nLongitude: ${longitude.toFixed(6)}`);
-      },
-      (error) => {
-        setIsLocating(false);
-        alert(`Unable to fetch your location: ${error.message}`);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  };
-
-  // Simulate Voice Record & create dummy file for Cloudinary upload
-  const handleVoiceRecord = () => {
-    if (isRecording) {
-      setIsRecording(false);
-      setIsTranslating(true);
-      
-      // Build a dummy audio file so backend can upload it to Cloudinary
-      const dummyAudioBlob = new Blob([new Uint8Array(1000)], { type: 'audio/mp3' });
-      const file = new File([dummyAudioBlob], 'voice_complaint.mp3', { type: 'audio/mp3' });
-      setAudioFile(file);
-
-      setTimeout(() => {
-        setIsTranslating(false);
-        setDescription('Hamare area me road bilkul kharab ho chuki hai, bade gadde hain. (Voice Input translated: The road in our area is completely damaged, there are large potholes.)');
-        setCategory('roads');
-      }, 1500);
-    } else {
-      setDescription('');
-      setAudioFile(null);
-      setIsRecording(true);
-    }
-  };
-
-  // Helper to download sample photo and convert it to File object
-  const handleSelectPhoto = async (sample) => {
-    setPhotoUrl(sample.url);
-    setIsScanning(true);
-    
-    try {
-      const response = await fetch(sample.url);
-      const blob = await response.blob();
-      const file = new File([blob], `${sample.name.toLowerCase().replace(/ /g, '_')}.jpg`, { type: 'image/jpeg' });
-      setImageFile(file);
-    } catch (err) {
-      console.warn("Could not download sample photo as File object. Sending only URL.");
-    }
-    
-    setTimeout(() => {
-      setIsScanning(false);
-      setDescription(sample.text);
-      setCategory(sample.category.toLowerCase().startsWith('water') ? 'water' : sample.category.toLowerCase().startsWith('waste') ? 'sanitation' : 'roads');
-    }, 1800);
-  };
-
-  // Handle local photo upload
-  const handleCustomPhotoUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      setPhotoUrl(URL.createObjectURL(file));
-      setIsScanning(true);
-      setTimeout(() => {
-        setIsScanning(false);
-        setDescription('Reported civic issue at current ward coordinate.');
-        setCategory('roads');
-      }, 1800);
-    }
-  };
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
@@ -412,15 +296,6 @@ export default function CitizenDashboard() {
 
     setIsSubmitting(true);
 
-    // Use the real GPS coordinates captured via "Refresh GPS coordinates" if available.
-    // Otherwise fall back to a scattered coordinate near the default ward so the map still has something to show.
-    const lat = coords.lat !== null
-      ? coords.lat.toFixed(6)
-      : (19.1155 + (Math.random() - 0.5) * 0.04).toFixed(6);
-    const lng = coords.lng !== null
-      ? coords.lng.toFixed(6)
-      : (72.8755 + (Math.random() - 0.5) * 0.04).toFixed(6);
-
     const complaintData = {
       title: `Reported ${category.toUpperCase()}`,
       description: description || 'Voice complaint submitted.',
@@ -436,8 +311,8 @@ export default function CitizenDashboard() {
       complaintData.audio_file = new File([audioBlob], 'voice.webm', { type: 'audio/webm' });
     }
     
-    // For photo, if they used sample photo, fetch it and convert to File
-    if (photoUrl && photoUrl.startsWith('http')) {
+    // For photo, fetch it and convert to File (handles both remote URLs and local blob URLs)
+    if (photoUrl) {
       try {
         const response = await fetch(photoUrl);
         const blob = await response.blob();
@@ -467,7 +342,7 @@ export default function CitizenDashboard() {
     (c) => c.user === (user?.email || 'guest@demo.com')
   );
 
-  // ΓöÇΓöÇΓöÇ Reder ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ΓöÇΓöÇΓöÇ Render ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   return (
     <div className="relative min-h-[90vh] pb-20">
       {/* Dynamic Premium Background */}
@@ -775,22 +650,7 @@ export default function CitizenDashboard() {
                     <AlertCircle className="w-5 h-5 shrink-0" />
                     <span className="text-[11px] font-medium leading-tight">Photos/Voice inputs will auto-fill your descriptions!</span>
                   </div>
-                  <div className="flex items-center space-x-3 bg-slate-50 p-3 rounded-xl border border-slate-200/50">
-                    <MapPin className="text-blue-500 w-5 h-5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-bold text-slate-700">{ward}</p>
-                      <p className="text-[10px] text-slate-400">
-                        {coords.lat !== null ? `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}` : 'Maharashtra, India'}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleGPSLocation}
-                    type="button"
-                    className="w-full py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl shadow-sm transition-all"
-                  >
-                    Refresh GPS coordinates
-                  </button>
+
                 </div>
               </div>
 
@@ -803,7 +663,7 @@ export default function CitizenDashboard() {
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Choose Reporting Method</label>
                   <div className="grid grid-cols-3 gap-3">
                     {[
-                      { key: 'voice', icon: <Mic className="w-6 h-6 mb-2" />, label: '≡ƒÄÖ∩╕Å Speak (Voice)' },
+                      { key: 'voice', icon: <Mic className="w-6 h-6 mb-2" />, label: 'Speak (Voice)' },
                       { key: 'photo', icon: <Camera className="w-6 h-6 mb-2" />, label: '≡ƒô╕ Snap (Photo)' },
                       { key: 'text', icon: <FileText className="w-6 h-6 mb-2" />, label: 'Γî¿∩╕Å Type (Text)' },
                     ].map(({ key, icon, label }) => (
@@ -833,7 +693,7 @@ export default function CitizenDashboard() {
                     <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200/60 space-y-5">
                       {/* Prompt Text */}
                       <div className="text-center">
-                        <h4 className="text-base font-bold text-slate-700">≡ƒÄÖ∩╕Å "Boliye, aapki kya samasya hai?"</h4>
+                        <h4 className="text-base font-bold text-slate-700">"Boliye, aapki kya samasya hai?"</h4>
                         <p className="text-xs text-slate-400 mt-1">Record your complaint in your voice. It will be saved and submitted.</p>
                       </div>
 
