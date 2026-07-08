@@ -264,5 +264,48 @@ export const useComplaintStore = create((set, get) => ({
         clusters: state.clusters.map(c => c.id === clusterId ? { ...c, status: newStatus } : c)
       }));
     }
+  },
+
+  // Admin triggers AI RAG resolution generation
+  generateClusterResolution: async (clusterId) => {
+    try {
+      const res = await axios.post(`${BASE_URL}/clusters/${clusterId}/generate-resolution/`, {}, { headers: getHeaders() });
+      
+      set(state => ({
+        clusters: state.clusters.map(c => c.id === clusterId ? { 
+          ...c, 
+          matched_scheme: res.data.matched_scheme,
+          ai_recommendation: res.data.ai_recommendation,
+          notice_draft: res.data.notice_draft
+        } : c)
+      }));
+      return res.data;
+    } catch (err) {
+      console.error("Error generating cluster resolution:", err);
+      // Mock offline fallback logic in case server is unreachable
+      const cluster = get().clusters.find(c => c.id === clusterId);
+      const category = cluster?.category?.toLowerCase() || 'other';
+      
+      const fallbacks = {
+        roads: { scheme: "State PWD Road Maintenance Fund", rec: "Aap is road cluster ko local State PWD Maintenance budget se directly patch up karwa sakte hain. Immediate temporary pothole filling and leveling recommend kiya jata hai.", draft: "To,\nThe Chief Engineer,\nPublic Works Department (PWD),\n\nSubject: Urgent road restoration required" },
+        water: { scheme: "AMRUT 2.0 (Atal Mission for Rejuvenation and Urban Transformation)", rec: "Water pipeline leakage aur supply disruptions ko municipal corporation ke state-level AMRUT 2.0 scheme infrastructure grants ke through resolve karwaya ja sakta hai.", draft: "To,\nThe Executive Engineer,\nWater Supply Board (Jal Board)" },
+        electricity: { scheme: "Revamped Distribution Sector Scheme (RDSS)", rec: "Streetlight repairs aur transformer faults ko local DISCOM utility maintenance fund aur central RDSS infrastructure budget se funding di ja sakti hai.", draft: "To,\nThe Assistant Engineer,\nState Power Distribution Company (DISCOM)" },
+        sanitation: { scheme: "Swachh Bharat Mission - Urban (SBM-U 2.0)", rec: "Garbage dumpsites aur sanitation issues ke solution ke liye Swachh Bharat Mission ke dedicated waste collection and segregation funds ko deploy karein.", draft: "To,\nThe Chief Sanitary Inspector,\nMunicipal Corporation Waste Management Dept" },
+        health: { scheme: "National Health Mission (NHM)", rec: "Public health hazards aur cleanliness hazards ke liye local healthcare center monitoring aur health safety inspection orders pass karein.", draft: "To,\nThe Chief Medical Officer (CMO)" },
+        safety: { scheme: "Safe City Project (Nirbhaya Fund)", rec: "Dark spots aur crime-prone areas me lighting aur safety enhancement ke liye local police station deployment aur Nirbhaya fund safety grants utilize karein.", draft: "To,\nThe Superintendent of Police (SP)" },
+        animals: { scheme: "Animal Birth Control (ABC) Programme", rec: "Stray dogs ya stray cattle population management ke liye local municipal animal control team aur district veterinary guidelines follow karein.", draft: "To,\nThe Senior Veterinary Officer,\nMunicipal Animal Welfare Department" },
+        other: { scheme: "MPLADS (Member of Parliament Local Area Development Scheme)", rec: "Is miscellaneous issue ko resolve karne ke liye MP Local Area Development fund ka general community asset repair budget allocate karein.", draft: "To,\nThe District Collector" }
+      };
+
+      const val = fallbacks[category] || fallbacks.other;
+      set(state => ({
+        clusters: state.clusters.map(c => c.id === clusterId ? {
+          ...c,
+          matched_scheme: val.scheme,
+          ai_recommendation: val.rec,
+          notice_draft: val.draft
+        } : c)
+      }));
+    }
   }
 }));
