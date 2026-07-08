@@ -55,3 +55,7 @@ wcwidth==0.8.2
 websockets==16.0
 
 reportlab==4.1.0
+
+# Production deployment
+gunicorn==23.0.0
+whitenoise==6.8.2

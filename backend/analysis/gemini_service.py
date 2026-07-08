@@ -91,25 +91,17 @@ def analyze_civic_complaint(description, image_url=None, audio_url=None):
 
     contents.append(user_prompt)
 
-    try:
-        response = client.models.generate_content(
-            model='gemini-2.0-flash',
-            contents=contents,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                response_mime_type="application/json",
-                response_schema=ComplaintAnalysisSchema,
-                temperature=0.1
-            )
+    # Note: no try/except here on purpose. The caller (analysis/tasks.py) needs to see the real
+    # exception so it can tell a transient rate-limit (retry later) apart from a hard failure
+    # (fall back to safe defaults immediately) instead of both looking identical.
+    response = client.models.generate_content(
+        model='gemini-2.0-flash',
+        contents=contents,
+        config=types.GenerateContentConfig(
+            system_instruction=system_instruction,
+            response_mime_type="application/json",
+            response_schema=ComplaintAnalysisSchema,
+            temperature=0.1
         )
-        return json.loads(response.text)
-    except Exception as e:
-        logger.error(f"Gemini API execution error: {e}")
-        # Return fallback values in case of API error so system doesn't crash
-        return {
-            "category": "other",
-            "department": "Collectorate Office",
-            "severity_score": 3.0,
-            "sentiment": "Concerned",
-            "ai_summary": description[:100] if description else "New civic complaint submitted."
-        }
+    )
+    return json.loads(response.text)
