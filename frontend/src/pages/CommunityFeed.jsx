@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 
@@ -311,8 +311,9 @@ function Toast({ message, visible }) {
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
-export default function CommunityFeed() {
+export default function CommunityFeed({ hideHeader = false }) {
   const { token } = useAuthStore();
+  const navigate = useNavigate();
   const [complaints, setComplaints] = useState(MOCK_COMPLAINTS);
   const [skipped, setSkipped] = useState([]);
   const [toast, setToast] = useState({ visible: false, message: '' });
@@ -321,7 +322,7 @@ export default function CommunityFeed() {
 
   useEffect(() => {
     // Try to fetch real data; fallback to mock silently
-    axios.get('http://localhost:8000/api/complaints/', {
+    axios.get('http://localhost:8000/api/collect/posts/', {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     }).then(res => {
       if (res.data?.results?.length > 0) {
@@ -336,11 +337,17 @@ export default function CommunityFeed() {
   };
 
   const handleUpvote = async (complaint) => {
+    if (!token) {
+      alert("Please register or login first to upvote an issue!");
+      navigate('/login');
+      return;
+    }
+    
     if (upvotedIds.has(complaint.id)) return;
 
     try {
-      await axios.post(`http://localhost:8000/api/complaints/${complaint.id}/upvote/`, {}, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      await axios.post(`http://localhost:8000/api/collect/posts/${complaint.id}/upvote/`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
       });
     } catch {
       // Silently fail — demo mode
@@ -371,34 +378,37 @@ export default function CommunityFeed() {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: hideHeader ? 'auto' : '100vh',
+      paddingBottom: hideHeader ? '40px' : '0',
       background: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
       fontFamily: "'Inter', 'Segoe UI', sans-serif",
     }}>
       {/* Header */}
-      <div style={{
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
-        padding: '16px 24px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(20px)',
-        position: 'sticky', top: 0, zIndex: 10,
-      }}>
-        <div>
-          <h1 style={{ margin: 0, color: 'white', fontSize: '18px', fontWeight: 800 }}>
-            Community Feed
-          </h1>
-          <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>
-            Swipe right to upvote · left to skip
-          </p>
-        </div>
-        <Link to="/citizen/dashboard" style={{
-          background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.4)',
-          color: '#a5b4fc', borderRadius: '10px', padding: '8px 14px',
-          fontSize: '13px', fontWeight: 600, textDecoration: 'none',
+      {!hideHeader && (
+        <div style={{
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          padding: '16px 24px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(20px)',
+          position: 'sticky', top: 0, zIndex: 10,
         }}>
-          ← Report Hub
-        </Link>
-      </div>
+          <div>
+            <h1 style={{ margin: 0, color: 'white', fontSize: '18px', fontWeight: 800 }}>
+              Community Feed
+            </h1>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>
+              Swipe right to upvote · left to skip
+            </p>
+          </div>
+          <Link to="/citizen/dashboard" style={{
+            background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.4)',
+            color: '#a5b4fc', borderRadius: '10px', padding: '8px 14px',
+            fontSize: '13px', fontWeight: 600, textDecoration: 'none',
+          }}>
+            ← Report Hub
+          </Link>
+        </div>
+      )}
 
       {/* Swipe hint */}
       <div style={{

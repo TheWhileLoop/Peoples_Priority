@@ -2,6 +2,7 @@ import json
 import math
 from decimal import Decimal
 from datetime import timedelta
+from decimal import Decimal
 from django.utils import timezone
 from celery import shared_task
 from django.conf import settings
@@ -10,6 +11,154 @@ from .gemini_service import analyze_civic_complaint
 import google.genai as genai
 from google.genai import types
 
+
+@shared_task
+def process_complaint_with_ai(complaint_id):
+    """
+    Analyzes a single complaint using Gemini AI and clusters it into an IssueCluster.
+    Called after every new complaint is saved.
+    """
+    from data_collection.models import Complaint
+
+    print(f"[AI Task] Processing complaint ID: {complaint_id}")
+
+    try:
+        complaint = Complaint.objects.get(id=complaint_id)
+    except Complaint.DoesNotExist:
+        print(f"[AI Task] Complaint {complaint_id} not found.")
+        return
+
+    api_key = getattr(settings, 'GEMINI_API_KEY', '')
+
+    # ── Build the prompt ────────────────────────────────────────────────────
+    prompt = f"""
+You are an AI civic analyst. Analyze the following citizen complaint and extract structured information.
+
+Complaint Title: {complaint.title or 'No title provided'}
+Complaint Description: {complaint.description}
+Location: Ward={complaint.ward or 'Unknown'}, City={complaint.city or 'Unknown'}, District={complaint.district or 'Unknown'}
+
+Respond in strict JSON with exactly these keys:
+1. "category" — one of: roads, water, electricity, sanitation, health, safety, animals, other
+2. "ai_summary" — a concise 1-2 sentence summary of the issue
+3. "sentiment" — one of: angry, concerned, neutral, positive
+4. "severity_score" — a float from 1.0 to 10.0 (10 = most urgent)
+5. "cluster_title" — a short (5-8 word) title for grouping similar issues
+6. "department" — the government department that should handle this (e.g., PWD, Municipal Corporation, BESCOM, etc.)
+
+Output strictly as JSON without any markdown formatting.
+"""
+
+    # ── Call Gemini (or use a fallback if no API key) ──────────────────────
+    data = None
+    if api_key:
+        try:
+            client = genai.Client(api_key=api_key)
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=prompt,
+            )
+            response_text = response.text.strip()
+            # Strip any markdown code fences
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            if response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+            data = json.loads(response_text.strip())
+            print(f"[AI Task] Gemini response for complaint {complaint_id}: {data}")
+        except Exception as e:
+            print(f"[AI Task] Gemini call failed for complaint {complaint_id}: {e}")
+
+    # ── Fallback if AI unavailable ─────────────────────────────────────────
+    if data is None:
+        data = {
+            "category": complaint.category or "other",
+            "ai_summary": complaint.description[:200],
+            "sentiment": "neutral",
+            "severity_score": 5.0,
+            "cluster_title": complaint.title or "Civic Issue",
+            "department": "Municipal Corporation",
+        }
+
+    # ── Update the complaint with AI results ──────────────────────────────
+    complaint.ai_category = data.get("category", complaint.category)
+    complaint.processed_text = data.get("ai_summary", "")
+    complaint.status = "verified"
+    complaint.save()
+
+    # ── Find or create a matching IssueCluster ────────────────────────────
+    category = data.get("category", "other")
+    ward = complaint.ward or ""
+    severity = Decimal(str(data.get("severity_score", 5.0)))
+    sentiment = data.get("sentiment", "neutral")
+    department = data.get("department", "Municipal Corporation")
+    cluster_title = data.get("cluster_title", complaint.title or "Civic Issue")
+    ai_summary = data.get("ai_summary", complaint.description[:200])
+
+    # Try to find an existing open cluster for the same category & ward
+    existing_cluster = IssueCluster.objects.filter(
+        category=category,
+        ward=ward,
+        status__in=["pending_ai", "pending_dept", "in_progress"],
+    ).first()
+
+    if existing_cluster:
+        cluster = existing_cluster
+        cluster.mentions_count += 1
+
+        # Update center coordinates as running average
+        cluster_complaints = list(cluster.complaints.all())
+        all_lats = [c.latitude for c in cluster_complaints if c.latitude is not None]
+        all_lons = [c.longitude for c in cluster_complaints if c.longitude is not None]
+        if complaint.latitude:
+            all_lats.append(complaint.latitude)
+        if complaint.longitude:
+            all_lons.append(complaint.longitude)
+        if all_lats:
+            cluster.center_latitude = sum(all_lats) / len(all_lats)
+        if all_lons:
+            cluster.center_longitude = sum(all_lons) / len(all_lons)
+
+        # Bump severity slightly
+        total_upvotes = sum(c.upvotes_count for c in cluster_complaints)
+        base_severity = Decimal('4.0')
+        new_severity = base_severity + Decimal(str(cluster.mentions_count * 0.1)) + Decimal(str(total_upvotes * 0.05))
+        cluster.severity_score = min(new_severity, Decimal('10.0'))
+
+        cluster.action_log = cluster.action_log or []
+        cluster.action_log.append({
+            "action": "complaint_added",
+            "complaint_id": complaint.id,
+        })
+        cluster.save()
+        print(f"[AI Task] Added complaint {complaint_id} to existing cluster {cluster.id}")
+    else:
+        # Create a brand-new cluster
+        cluster = IssueCluster.objects.create(
+            title=cluster_title,
+            ai_summary=ai_summary,
+            category=category,
+            severity_score=severity,
+            mentions_count=1,
+            sentiment=sentiment,
+            status="pending_dept",
+            state=None,
+            district=complaint.district or "",
+            city=complaint.city or "",
+            ward=ward,
+            department=department,
+            center_latitude=complaint.latitude,
+            center_longitude=complaint.longitude,
+            action_log=[{"action": "cluster_created", "complaint_id": complaint.id}],
+        )
+        print(f"[AI Task] Created new cluster {cluster.id} for complaint {complaint_id}")
+
+    # ── Link complaint → cluster ───────────────────────────────────────────
+    complaint.cluster = cluster
+    complaint.save()
+    print(f"[AI Task] Complaint {complaint_id} successfully processed and linked to cluster {cluster.id}.")
 # Radius used to decide whether a new complaint belongs to an existing cluster.
 # Mirrors the "2km radius" spatial-clustering behavior described in the backend design doc,
 # implemented here in plain Python since PostGIS isn't set up on this database.

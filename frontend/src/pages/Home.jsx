@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mic, Camera, FileText, Globe, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import FacebookStyleFeed from './FacebookStyleFeed';
 
 const resolvedTickerPhrases = [
   "💧 12 Pipeline leaks repaired in Ward 12 this morning.",
@@ -149,6 +150,15 @@ export default function Home() {
           </button>
         </div>
 
+      </div>
+
+      {/* COMMUNITY FEED ON HOME PAGE */}
+      <div className="w-full mt-24 mb-12 rounded-[40px] overflow-hidden shadow-2xl relative z-10 border-4 border-white/50 bg-slate-50">
+        <div className="bg-white px-8 py-6 text-center border-b border-slate-200">
+          <h2 className="text-slate-800 text-2xl font-bold">Trending Issues in Your City</h2>
+          <p className="text-slate-500 text-sm mt-1">Review and upvote what matters to you.</p>
+        </div>
+        <FacebookStyleFeed hideHeader={true} />
       </div>
 
     </div>

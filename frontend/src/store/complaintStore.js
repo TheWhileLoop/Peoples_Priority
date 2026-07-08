@@ -119,10 +119,7 @@ export const useComplaintStore = create((set, get) => ({
       });
 
       const res = await axios.post(`${BASE_URL}/collect/complaints/`, formData, {
-        headers: {
-          ...getHeaders(),
-          'Content-Type': 'multipart/form-data'
-        }
+        headers: getHeaders()
       });
 
       // Refetch to get updated list and newly created/updated clusters

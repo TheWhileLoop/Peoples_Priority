@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
 from .models import Complaint, ComplaintUpvote
 
 class ComplaintSerializer(serializers.ModelSerializer):
@@ -6,9 +7,37 @@ class ComplaintSerializer(serializers.ModelSerializer):
     citizen_name = serializers.SerializerMethodField()
     citizen_location = serializers.SerializerMethodField()
 
+    # Make description not required at serializer level
+    description = serializers.CharField(required=False, allow_blank=True, default='Complaint submitted.')
+
+    # Accept any JS floating point precision — validate methods will round to 6 dp
+    latitude = serializers.FloatField(required=False, allow_null=True)
+    longitude = serializers.FloatField(required=False, allow_null=True)
+
     class Meta:
         model = Complaint
         fields = '__all__'
+        # These fields are set by the server, not the client
+        read_only_fields = ['user', 'citizen', 'status', 'ai_category', 'ai_confidence',
+                            'processed_text', 'cluster', 'upvotes_count', 'created_at']
+
+    def validate_latitude(self, value):
+        """Round latitude to 6 decimal places to fit model's max_digits=9"""
+        if value is None:
+            return value
+        try:
+            return Decimal(str(value)).quantize(Decimal('0.000001'), rounding=ROUND_HALF_UP)
+        except InvalidOperation:
+            return None
+
+    def validate_longitude(self, value):
+        """Round longitude to 6 decimal places to fit model's max_digits=9"""
+        if value is None:
+            return value
+        try:
+            return Decimal(str(value)).quantize(Decimal('0.000001'), rounding=ROUND_HALF_UP)
+        except InvalidOperation:
+            return None
 
     def get_is_upvoted(self, obj):
         request = self.context.get('request')

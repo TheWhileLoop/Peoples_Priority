@@ -64,14 +64,4 @@ class ComplaintUpvote(models.Model):
         return f"{self.user.username} upvoted Complaint {self.complaint.id}"
 
 
-# Trigger Celery Task when a Complaint is created
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-
-@receiver(post_save, sender=Complaint)
-def trigger_ai_analysis(sender, instance, created, **kwargs):
-    if created:
-        from analysis.tasks import process_complaint_with_ai
-        # Trigger Celery task asynchronously
-        process_complaint_with_ai.delay(instance.id)
 
